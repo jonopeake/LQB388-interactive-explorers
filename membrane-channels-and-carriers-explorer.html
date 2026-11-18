@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Membrane channels and carriers</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#19374b;font:16px/1.5 system-ui,sans-serif}main{max-width:1050px;margin:12px auto;background:white;border:1px solid #d5e4ec;border-radius:16px;padding:clamp(14px,3vw,28px)}h1,h2{line-height:1.2;margin:0 0 12px}h1{font-size:clamp(1.6rem,4vw,2.2rem)}h2{font-size:1.25rem}p{margin:8px 0 14px}nav,.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}button,select{font:inherit;color:inherit;background:white;border:1px solid #7896a6;border-radius:8px;padding:7px 11px}button{cursor:pointer}button[aria-pressed=true]{background:#14596f;color:white}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #aa5a00;outline-offset:3px}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{padding:14px;border:1px solid #cbdde6;border-radius:12px;background:#f5f9fb}svg{display:block;width:100%;height:auto;border:1px solid #cbdde6;border-radius:10px;background:white}svg text{font-family:system-ui,sans-serif;fill:#19374b}label{font-weight:650}input[type=range]{width:100%;accent-color:#087485}output{font-weight:700}summary{cursor:pointer;font-weight:700}details{margin-top:14px}.feedback{min-height:3em}.legend{font-size:.9rem;color:#3d596a}.moving{animation:cross 1.65s linear both}@keyframes cross{to{transform:translateY(-91px)}}@media(prefers-reduced-motion:reduce){.moving{animation:none;transform:translateY(-91px)}}@media(max-width:680px){.pair{grid-template-columns:1fr}main{margin:6px}}
+</style>
+<main>
+<h1>Membrane channels and carriers</h1>
+<nav aria-label="Activities">
+<button type="button" data-panel="mechanisms" aria-pressed="true">Watch transport</button>
+<button type="button" data-panel="selectivity" aria-pressed="false">Test selectivity</button>
+<button type="button" data-panel="saturation" aria-pressed="false">Explore saturation</button>
+</nav>
+<section id="mechanisms">
+<div class="pair">
+<article class="card">
+<h2>Potassium channel</h2>
+<svg id="channel-image" viewBox="0 0 320 160" role="img" aria-label="Potassium channel through a membrane"></svg>
+<div class="controls"><button id="gate" aria-pressed="false">Open channel</button><button id="release">Show potassium leaving</button></div>
+<p class="feedback" id="channel-feedback" role="status">The gate is closed. Open it to provide a continuous pathway through the membrane.</p>
+</article>
+<article class="card">
+<h2>Glucose carrier</h2>
+<svg id="carrier-image" viewBox="0 0 320 160" role="img" aria-label="Glucose carrier changing shape"></svg>
+<div class="controls"><button id="step">Next step</button><button id="reset-cycle">Reset cycle</button></div>
+<p class="feedback" id="carrier-feedback" role="status"></p>
+</article>
+</div>
+<p class="legend">These examples show facilitated diffusion. Net movement follows the electrochemical gradient for potassium and the concentration gradient for glucose.</p>
+</section>
+<section id="selectivity" hidden>
+<h2>Which solute can cross?</h2>
+<p>Choose a solute and predict what will happen before you try it.</p>
+<div class="controls">
+<label for="solute">Solute</label><select id="solute"><option>Potassium</option><option>Sodium</option><option>Glucose</option></select>
+<label for="protein">Protein</label><select id="protein"><option value="channel">Open potassium channel</option><option value="carrier">Glucose carrier</option></select>
+<label for="prediction">Your prediction</label><select id="prediction"><option value="">Choose…</option><option value="pass">Crosses</option><option value="blocked">Does not cross</option></select>
+<button id="run-trial" disabled>Run trial</button>
+</div>
+<svg id="trial-image" viewBox="0 0 320 160" style="max-width:560px" role="img" aria-label="Selected transport protein and solute"></svg>
+<p class="card feedback" id="selection-feedback" role="status">Choose a solute, a protein and a prediction.</p>
+<p class="legend">The trial shows whether the protein can transport the solute. At −70 mV with typical potassium concentrations, net potassium movement is outward. For glucose, the trial assumes a higher concentration outside the cell.</p>
+</section>
+<section id="saturation" hidden>
+<h2>What limits the initial glucose transport rate?</h2>
+<div class="pair">
+<div class="card">
+<label for="glucose">Outside glucose concentration</label>
+<div><output id="concentration" for="glucose"></output></div>
+<input id="glucose" type="range" min="0" max="40" step="1" value="4">
+<label for="carriers">Number of carriers</label>
+<div><output id="carrier-count" for="carriers"></output></div>
+<input id="carriers" type="range" min="1" max="6" step="1" value="3">
+<svg id="sample" viewBox="0 0 320 160" role="img" aria-label="Illustrative glucose molecules outside and transported inside"></svg>
+<p class="legend">Dots inside show the approximate number of glucose molecules transported during the same short interval. Each sample starts with negligible glucose inside.</p>
+</div>
+<div class="card">
+<svg id="plot" viewBox="0 0 360 252" role="img" aria-label="Initial glucose transport rate against outside glucose concentration"></svg>
+<p id="rate" class="feedback" role="status"></p>
+<p class="legend">Illustrative model. The dashed line shows the maximum rate for the selected number of carriers.</p>
+</div>
+</div>
+<details><summary>Prediction challenge</summary><p>Set the concentration to 20 mM with three carriers. Which change will increase the initial transport rate more: doubling glucose or doubling carriers? Use the sliders to compare 40 mM with three carriers and 20 mM with six carriers.</p>
+<details><summary>Show answer</summary><p>Doubling carriers has the larger effect. At 20 mM the existing carriers are already cycling near capacity. Adding carriers increases the number that can transport glucose at the same time and raises the maximum rate.</p></details></details>
+</section>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const membrane = '<rect width="320" height="160" fill="#e5f4fa"/><rect y="94" width="320" height="66" fill="#fff3df"/><rect y="65" width="320" height="29" fill="#b7d5e4"/><text x="12" y="22" font-size="13">Outside</text><text x="12" y="149" font-size="13">Inside</text>';
+let open = false;
+function drawChannel(particleClass = '', showParticle = false) {
+  get('channel-image').innerHTML = membrane +
+    '<path d="M135 58H149V101H135Z M171 58H185V101H171Z" fill="#1a6480"/>' +
+    (open ? '' : '<rect x="149" y="76" width="22" height="7" fill="#1a6480"/>') +
+    (showParticle ? '<g class="' + particleClass + '"><circle cx="160" cy="126" r="13" fill="#ddd4ff"/><text x="160" y="130" text-anchor="middle" font-size="12">K⁺</text></g>' : '');
+}
+drawChannel();
+get('gate').onclick = () => {
+  open = !open;
+  get('gate').setAttribute('aria-pressed', open);
+  get('gate').textContent = open ? 'Close channel' : 'Open channel';
+  get('channel-feedback').textContent = open ? 'The open pore connects both sides of the membrane.' : 'The closed gate blocks the pore.';
+  drawChannel();
+};
+get('release').onclick = () => {
+  drawChannel(open ? 'moving' : '', true);
+  get('channel-feedback').textContent = open ? 'This ion crosses outward. At −70 mV with typical potassium concentrations, net potassium movement is outward, although individual ions can cross either way.' : 'Potassium cannot cross through the closed channel.';
+};
+const carrierStages = [
+  ['M133 60V93H187V60','<circle cx="160" cy="39" r="8" fill="#a84560"/>','The binding site faces outside the cell.'],
+  ['M133 60V93H187V60','<circle cx="160" cy="79" r="8" fill="#a84560"/>','Glucose binds to the carrier.'],
+  ['M133 62H187V97H133Z','<circle cx="160" cy="79" r="8" fill="#a84560"/>','The carrier changes shape. The binding site is briefly shielded from both sides.'],
+  ['M133 99V66H187V99','<circle cx="160" cy="122" r="8" fill="#a84560"/>','The binding site faces inside and releases glucose. The empty carrier can return to its starting shape.']
+];
+let stage = 0;
+function drawCarrier() {
+  const [shape, glucose, description] = carrierStages[stage];
+  get('carrier-image').innerHTML = membrane + '<path d="' + shape + '" fill="none" stroke="#24734e" stroke-width="9" stroke-linejoin="round"/>' + glucose;
+  get('carrier-feedback').textContent = description;
+}
+get('step').onclick = () => { stage = (stage + 1) % carrierStages.length; drawCarrier(); };
+get('reset-cycle').onclick = () => { stage = 0; drawCarrier(); };
+drawCarrier();
+const trials = {
+  channel: {
+    Potassium: ['pass', 'The filter allows potassium through. Under these conditions, more potassium ions leave than enter.'],
+    Sodium: ['blocked', 'This potassium channel excludes sodium. Sodium is smaller and has the same charge, but it does not interact with the selectivity filter in the same way as potassium.'],
+    Glucose: ['blocked', 'Glucose cannot pass through this potassium-selective pore.']
+  },
+  carrier: {
+    Potassium: ['blocked', 'Potassium does not bind to the glucose binding site.'],
+    Sodium: ['blocked', 'Sodium does not bind to the glucose binding site of this uniporter.'],
+    Glucose: ['pass', 'Glucose binds. The carrier changes shape to expose its binding site to the cell interior and releases glucose.']
+  }
+};
+function drawTrial(run = false) {
+  const solute = get('solute').value;
+  const protein = get('protein').value;
+  const prediction = get('prediction').value;
+  const [outcome, explanation] = trials[protein][solute];
+  const label = {Potassium:'K⁺', Sodium:'Na⁺', Glucose:'Glucose'}[solute];
+  const diagram = get('trial-image');
+  const channel = protein === 'channel';
+  const shape = channel
+    ? '<path d="M132 58H144V101H132Z M176 58H188V101H176Z" fill="#1a6480"/>'
+    : '<path id="trial-carrier" d="M133 60V93H187V60" fill="none" stroke="#24734e" stroke-width="9" stroke-linejoin="round"/>';
+  const outward = solute === 'Potassium';
+  const startY = outward ? 126 : 31;
+  diagram.innerHTML = membrane + shape +
+    '<g id="trial-particle"><circle cx="160" cy="' + startY + '" r="14" fill="#ddd4ff"/><text x="160" y="' + (startY + 4) + '" text-anchor="middle" font-size="8">' + label + '</text></g>';
+  get('run-trial').disabled = !prediction;
+  const feedback = get('selection-feedback');
+  if (!run) {
+    feedback.textContent = 'Choose a solute, a protein and a prediction.';
+    return;
+  }
+  const particle = get('trial-particle');
+  const direction = outward ? -1 : 1;
+  const frames = outcome === 'blocked' ? [0, direction * 20, 0] : channel ? [0, direction * 95] : [0, 48, 48, 95];
+  const duration = 1400;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const carrier = get('trial-carrier');
+  if (carrier && outcome === 'pass' && !reduced) {
+    setTimeout(() => {
+      if (carrier.isConnected) carrier.setAttribute('d', 'M133 99V66H187V99');
+    }, duration * 0.58);
+  }
+  if (reduced) {
+    particle.setAttribute('transform', 'translate(0 ' + frames[frames.length - 1] + ')');
+    if (carrier && outcome === 'pass') carrier.setAttribute('d', 'M133 99V66H187V99');
+  } else {
+    particle.animate(frames.map(y => ({transform: 'translateY(' + y + 'px)'})), {duration, fill:'forwards'});
+  }
+  const result = {pass:'Crosses.', blocked:'Does not cross.'}[outcome];
+  feedback.textContent = (prediction === outcome ? 'Correct. ' : 'Try again with what you observed. ') + result + ' ' + explanation;
+}
+for (const id of ['solute', 'protein', 'prediction']) {
+  get(id).onchange = () => {
+    if (id !== 'prediction') get('prediction').value = '';
+    drawTrial();
+  };
+}
+get('run-trial').onclick = () => drawTrial(true);
+drawTrial();
+const glucose = get('glucose');
+const carriers = get('carriers');
+function initialRate(concentration, count) {
+  return 4 * count * concentration / (4 + concentration);
+}
+function plotRate() {
+  const c = Number(glucose.value);
+  const n = Number(carriers.value);
+  const rate = initialRate(c, n);
+  const x = value => 57 + value * 7;
+  const y = value => 198 - value * 7;
+  get('concentration').textContent = c + ' mM';
+  get('carrier-count').textContent = n;
+  let points = '';
+  for (let i = 0; i <= 40; i++) points += x(i) + ',' + y(initialRate(i,n)) + ' ';
+  let axes = '<path d="M57 27V198H337" fill="none" stroke="#597585"/>';
+  for (const tick of [0,10,20,30,40]) axes += '<text x="' + x(tick) + '" y="217" text-anchor="middle" font-size="12">' + tick + '</text>';
+  for (const tick of [0,6,12,18,24]) axes += '<text x="49" y="' + (y(tick)+4) + '" text-anchor="end" font-size="12">' + tick + '</text>';
+  get('plot').innerHTML = axes +
+    '<text x="198" y="239" text-anchor="middle" font-size="13">Outside glucose (mM)</text><text transform="translate(17 112) rotate(-90)" text-anchor="middle" font-size="12">Initial transport rate</text>' +
+    '<path d="M57 ' + y(4*n) + 'H337" stroke="#78939c" stroke-dasharray="5 4"/>' +
+    '<polyline points="' + points + '" fill="none" stroke="#24734e" stroke-width="3"/><circle cx="' + x(c) + '" cy="' + y(rate) + '" r="5" fill="#a84560"/>';
+  get('rate').textContent = 'Initial transport rate: ' + rate.toFixed(1) + ' glucose molecules per interval. Maximum: ' + 4*n + '.';
+  let dots = '';
+  for (const [count, row] of [[c, 27], [Math.round(rate), 108]]) {
+    for (let i = 0; i < count; i++) dots += '<circle cx="' + (70 + i%14*16) + '" cy="' + (row + Math.floor(i/14)*13) + '" r="3.5" fill="#a84560"/>';
+  }
+  for (let i = 0; i < n; i++) dots += '<rect x="' + (78+i*32) + '" y="68" width="18" height="23" rx="6" fill="#24734e"/>';
+  get('sample').innerHTML = membrane + dots;
+  get('sample').setAttribute('aria-label', 'Approximate number of glucose molecules transported inside during the interval: ' + Math.round(rate));
+}
+for (const input of [glucose, carriers]) input.oninput = plotRate;
+plotRate();
+const tabs = document.querySelectorAll('[data-panel]');
+for (const tab of tabs) {
+  tab.onclick = () => {
+    for (const item of tabs) {
+      const active = item === tab;
+      item.setAttribute('aria-pressed', active);
+      get(item.dataset.panel).hidden = !active;
+    }
+  };
+}
+</script>
+</html>
