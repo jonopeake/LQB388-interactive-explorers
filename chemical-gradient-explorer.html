@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An interactive physiology explorer showing how concentration differences produce a chemical driving force across a cell membrane.">
+<title>Chemical Gradient Explorer</title>
+<style>
+:root{--ink:#18334a;--muted:#526a7b;--blue:#d9eff5;--blue-strong:#1677a8;--membrane:#3985bb;--cell:#fff5dc;--particle:#c94736;--orange:#ee9a32;--line:#d7e1e8;--surface:#fff;--soft:#f3f7f9;--shadow:0 10px 28px rgba(22,51,74,.09)}
+*{box-sizing:border-box}
+body{margin:0;background:#eef3f6;color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1060px;margin:26px auto;padding:0 18px 30px}
+.explorer{background:var(--surface);border:1px solid #dce5ea;border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+.top{padding:25px 30px 10px}
+.kicker{margin:0 0 4px;color:#347493;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.78rem}
+h1{font-size:clamp(1.45rem,3vw,2rem);line-height:1.2;margin:0 0 8px;letter-spacing:-.02em}
+.lead{margin:0;max-width:780px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.85fr);gap:22px;padding:18px 26px 26px;align-items:start}
+.visual-wrap{min-width:0}
+.visual{display:block;width:100%;height:auto;border:1px solid #cfdee6;border-radius:15px;background:var(--blue)}
+.status{margin:12px 2px 0;padding:12px 14px;background:#f1f7fa;border-left:4px solid var(--blue-strong);border-radius:8px;color:#254b62}
+.status strong{display:block;margin-bottom:2px}
+.controls{border:1px solid var(--line);border-radius:15px;padding:18px;background:#fbfcfd}
+.controls h2{font-size:1.14rem;margin:0 0 4px}
+.hint{margin:0 0 16px;color:var(--muted);font-size:.92rem}
+.slider-group{padding:12px 0;border-top:1px solid #e5ebef}
+.slider-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:6px}
+label{font-weight:650}
+.value{font-variant-numeric:tabular-nums;color:#174f70;font-weight:750;min-width:4.6em;text-align:right}
+input[type=range]{width:100%;accent-color:#1478a6;cursor:pointer}
+.scale{display:flex;justify-content:space-between;color:#738592;font-size:.78rem;margin-top:-3px}
+.buttons{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+button{font:inherit;font-weight:650;border:1px solid #b9cbd5;border-radius:9px;padding:9px 12px;background:#fff;color:var(--ink);cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+button:hover{background:#eef6f9;border-color:#7ba8bd}
+button:active{transform:translateY(1px)}
+button:focus-visible,input:focus-visible{outline:3px solid #ffbf55;outline-offset:3px}
+button.primary{background:#176d96;border-color:#176d96;color:white}
+button.primary:hover{background:#105a7d}
+.note{margin:17px 0 0;padding:12px 13px;background:#fff8e9;border-radius:10px;color:#5d4b2a;font-size:.9rem}
+.explain{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 26px 25px}
+.explain section{padding:15px 16px;border:1px solid var(--line);border-radius:13px;background:#fff}
+.explain h2{font-size:1.03rem;margin:0 0 4px}
+.explain p{margin:0;color:var(--muted);font-size:.93rem}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:760px){main{margin:12px auto;padding:0 10px 18px}.top{padding:20px 18px 8px}.layout{grid-template-columns:1fr;padding:12px 16px 20px;gap:15px}.controls{order:2}.visual-wrap{order:1}.explain{padding:0 16px 18px;grid-template-columns:1fr}.status{font-size:.93rem}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main>
+<article class="explorer" aria-labelledby="page-title">
+  <header class="top">
+    <p class="kicker">Interactive physiology explorer</p>
+    <h1 id="page-title">Chemical gradients across a cell membrane</h1>
+    <p class="lead">Adjust the relative solute concentrations inside and outside the cell. Watch how the chemical driving force changes the direction of net passive movement.</p>
+  </header>
+  <div class="layout">
+    <section class="visual-wrap" aria-label="Visualisation of solute movement">
+      <svg class="visual" id="diagram" viewBox="0 0 700 470" role="img" aria-labelledby="svg-title svg-desc">
+        <title id="svg-title">Solute concentration and chemical driving force</title>
+        <desc id="svg-desc">A cell with a semipermeable membrane. Solute particles move randomly in both directions, while the net chemical driving force points from the higher concentration to the lower concentration.</desc>
+        <defs>
+          <clipPath id="cell-clip"><circle cx="350" cy="246" r="138"/></clipPath>
+          <marker id="arrow-head" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M1,1 L10,6 L1,11 Z" fill="#e58a22"/></marker>
+          <marker id="small-head" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="#597786"/></marker>
+        </defs>
+        <rect x="0" y="0" width="700" height="470" rx="14" fill="#d9eff5"/>
+        <text x="28" y="39" fill="#31566b" font-size="17" font-weight="700">EXTRACELLULAR FLUID</text>
+        <text x="350" y="410" text-anchor="middle" fill="#31566b" font-size="17" font-weight="700">CELL INTERIOR</text>
+        <circle cx="350" cy="246" r="143" fill="#4f9aca" opacity=".35"/>
+        <circle cx="350" cy="246" r="138" fill="#fff5dc" stroke="#287cae" stroke-width="5"/>
+        <g id="particles-out" aria-hidden="true"></g>
+        <g id="particles-in" clip-path="url(#cell-clip)" aria-hidden="true"></g>
+        <g id="motion-arrows" aria-hidden="true"></g>
+        <g id="force-arrow" aria-hidden="true"></g>
+        <rect x="219" y="430" width="262" height="27" rx="13" fill="#fff" opacity=".87"/>
+        <circle cx="238" cy="443" r="6" fill="#c94736"/>
+        <text x="252" y="449" fill="#354d5d" font-size="14">solute particle</text>
+        <line x1="385" y1="443" x2="416" y2="443" stroke="#e58a22" stroke-width="4" marker-end="url(#arrow-head)"/>
+        <text x="424" y="449" fill="#354d5d" font-size="14">net chemical force</text>
+      </svg>
+      <div class="status" id="status" aria-live="polite"><strong id="status-title">Chemical driving force: outward</strong><span id="status-text">Solute concentration is higher inside the cell, so net passive movement is outward.</span></div>
+    </section>
+    <aside class="controls" aria-label="Explorer controls">
+      <h2>Set the concentrations</h2>
+      <p class="hint">Values are relative concentration units. The same solute is shown on both sides.</p>
+      <div class="slider-group">
+        <div class="slider-head"><label for="inside">Inside the cell</label><output class="value" id="inside-value" for="inside">70 units</output></div>
+        <input id="inside" type="range" min="0" max="100" value="70" step="1" aria-describedby="inside-scale">
+        <div class="scale" id="inside-scale"><span>Lower</span><span>Higher</span></div>
+      </div>
+      <div class="slider-group">
+        <div class="slider-head"><label for="outside">Outside the cell</label><output class="value" id="outside-value" for="outside">25 units</output></div>
+        <input id="outside" type="range" min="0" max="100" value="25" step="1" aria-describedby="outside-scale">
+        <div class="scale" id="outside-scale"><span>Lower</span><span>Higher</span></div>
+      </div>
+      <div class="buttons">
+        <button type="button" id="swap" class="primary">Swap concentrations</button>
+        <button type="button" id="equalise">Set equal</button>
+        <button type="button" id="reset">Reset</button>
+      </div>
+      <p class="note"><strong>Model assumption:</strong> the membrane is permeable to this solute. Electrical forces and active transport are not included.</p>
+    </aside>
+  </div>
+  <div class="explain">
+    <section><h2>Random movement continues</h2><p>Particles move in both directions because of random molecular motion. The arrows show that movement occurs both ways across the membrane.</p></section>
+    <section><h2>Net movement follows the gradient</h2><p>When concentrations differ, more particles move from the higher-concentration side to the lower-concentration side. This net movement is the chemical driving force.</p></section>
+  </div>
+</article>
+</main>
+<script>
+(() => {
+  const inside = document.getElementById('inside');
+  const outside = document.getElementById('outside');
+  const inValue = document.getElementById('inside-value');
+  const outValue = document.getElementById('outside-value');
+  const inGroup = document.getElementById('particles-in');
+  const outGroup = document.getElementById('particles-out');
+  const arrowGroup = document.getElementById('force-arrow');
+  const motionGroup = document.getElementById('motion-arrows');
+  const statusTitle = document.getElementById('status-title');
+  const statusText = document.getElementById('status-text');
+  const NS = 'http://www.w3.org/2000/svg';
+  let seed = 781;
+  function random(){ seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+  function el(name, attrs){const n=document.createElementNS(NS,name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);return n;}
+  function clear(node){while(node.firstChild)node.removeChild(node.firstChild);}
+  function countFor(value){return Math.round(Number(value)*0.34);}
+  function particles(group,count,cell){
+    clear(group); seed = cell ? 1271 : 9347;
+    let made=0, tries=0;
+    while(made<count && tries<count*30+100){tries++; let x,y;
+      if(cell){x=350+(random()*2-1)*132;y=246+(random()*2-1)*132;if((x-350)**2+(y-246)**2>130**2)continue;}
+      else {x=18+random()*664;y=55+random()*330;if((x-350)**2+(y-246)**2<154**2)continue;}
+      group.appendChild(el('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:5.8,fill:'#c94736',stroke:'#a43228','stroke-width':'1'})); made++;
+    }
+  }
+  function drawMotion(direction){
+    clear(motionGroup);
+    const marks = direction==='out' ? [[207,210,232,210],[493,282,468,282]] : direction==='in' ? [[232,282,207,282],[468,210,493,210]] : [[207,210,232,210],[232,282,207,282],[468,210,493,210],[493,282,468,282]];
+    for(const [x1,y1,x2,y2] of marks){motionGroup.appendChild(el('line',{x1,y1,x2,y2,stroke:'#597786','stroke-width':'2','marker-end':'url(#small-head)',opacity:'.9'}));}
+  }
+  function render(){
+    const a=Number(inside.value), b=Number(outside.value);
+    inValue.textContent=a+' units'; outValue.textContent=b+' units';
+    particles(inGroup,countFor(a),true); particles(outGroup,countFor(b),false);
+    clear(arrowGroup);
+    let direction='equal';
+    if(a>b)direction='out'; else if(b>a)direction='in';
+    if(direction==='out'){
+      arrowGroup.appendChild(el('line',{x1:'350',y1:'246',x2:'600',y2:'246',stroke:'#e58a22','stroke-width':'7','marker-end':'url(#arrow-head)'}));
+      statusTitle.textContent='Chemical driving force: outward';
+      statusText.textContent='Solute concentration is higher inside the cell, so net passive movement is outward.';
+    } else if(direction==='in'){
+      arrowGroup.appendChild(el('line',{x1:'600',y1:'246',x2:'350',y2:'246',stroke:'#e58a22','stroke-width':'7','marker-end':'url(#arrow-head)'}));
+      statusTitle.textContent='Chemical driving force: inward';
+      statusText.textContent='Solute concentration is higher outside the cell, so net passive movement is inward.';
+    } else {
+      arrowGroup.appendChild(el('line',{x1:'300',y1:'246',x2:'400',y2:'246',stroke:'#738592','stroke-width':'5','stroke-dasharray':'8 7'}));
+      statusTitle.textContent='Chemical driving force: no net direction';
+      statusText.textContent='The concentrations are equal, so random movement continues but there is no net movement caused by a chemical gradient.';
+    }
+    drawMotion(direction);
+  }
+  inside.addEventListener('input',render); outside.addEventListener('input',render);
+  document.getElementById('swap').addEventListener('click',()=>{const x=inside.value;inside.value=outside.value;outside.value=x;render();});
+  document.getElementById('equalise').addEventListener('click',()=>{const m=Math.round((Number(inside.value)+Number(outside.value))/2);inside.value=m;outside.value=m;render();});
+  document.getElementById('reset').addEventListener('click',()=>{inside.value=70;outside.value=25;render();});
+  render();
+})();
+</script>
+</body>
+</html>
