@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Membrane permeability explorer</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#19374b;font:16px/1.5 system-ui,sans-serif}main{max-width:1000px;margin:14px auto;padding:clamp(14px,3vw,28px);background:white;border:1px solid #d6e4eb;border-radius:18px}h1{font-size:clamp(1.5rem,4vw,2rem);margin:0}p{margin:8px 0 14px}.grid{display:grid;grid-template-columns:1.65fr 1fr;gap:18px}svg{display:block;width:100%;border:1px solid #b7cfdc;border-radius:12px}aside,.result{padding:14px;background:#eff6f8;border-radius:12px}label,summary{font-weight:700}select,input[type=range]{display:block;width:100%;margin:5px 0 14px}select{font:inherit;color:inherit;padding:6px;border:1px solid #819daa;border-radius:7px;background:#fff}input{accent-color:#076d7d}.result{margin-top:10px;border-left:4px solid #087588}meter{width:100%;height:18px}summary{cursor:pointer}small{display:block;margin-top:12px;color:#435d6d}:focus-visible{outline:3px solid #a85c00;outline-offset:3px}[hidden]{display:none!important}@media(max-width:680px){main{margin:6px}.grid{grid-template-columns:1fr}}
+</style>
+<main>
+<h1>What makes a membrane more permeable?</h1>
+<p>Change one factor at a time and compare how readily a substance crosses the membrane.</p>
+<div class="grid">
+<section aria-label="Membrane diagram and result">
+<svg viewBox="0 0 560 285" role="img" aria-labelledby="diagram-title">
+<title id="diagram-title">Net movement across a membrane</title>
+<rect width="280" height="285" fill="#fff1d9"/>
+<rect x="280" width="280" height="285" fill="#d9eff6"/>
+<rect x="265" width="30" height="285" fill="#a9cbdc" stroke="#58879f" stroke-width="2"/>
+<g font-family="system-ui,sans-serif" fill="#19374b" text-anchor="middle">
+<text x="130" y="35" font-size="20" font-weight="700">Outside the cell</text>
+<text x="430" y="35" font-size="20" font-weight="700">Inside the cell</text>
+<text x="130" y="62" font-size="17">Initially higher concentration</text>
+<text x="430" y="62" font-size="17">Initially lower concentration</text>
+<text id="route-label" x="280" y="252" font-size="18" font-weight="700"></text>
+</g>
+<g id="particles" fill="#a84560"></g>
+<g id="channel" style="display:none"><rect x="248" y="135" width="64" height="14" rx="7" fill="#416691"/><rect x="248" y="174" width="64" height="14" rx="7" fill="#416691"/></g>
+<path id="arrow" fill="#087588"/>
+</svg>
+<div class="result">
+<p id="counts"></p>
+<label for="permeability">Relative permeability</label>
+<meter id="permeability" min="0" max="100" value="0"></meter>
+<div role="status"><strong id="level"></strong><br><span id="explanation"></span></div>
+</div>
+</section>
+<aside aria-label="Explorer controls">
+<label for="pathway">Transport pathway</label>
+<select id="pathway">
+<option value="bilayer">Through the lipid bilayer</option>
+<option value="channels">Through selective ion channels</option>
+</select>
+<div id="bilayer-controls">
+<label for="lipid">Lipid solubility</label>
+<select id="lipid"><option value="low">Low</option><option value="high" selected>High</option></select>
+<label for="size">Molecular size</label>
+<select id="size"><option value="small">Small</option><option value="large">Large</option></select>
+</div>
+<div id="channel-controls" hidden>
+<label for="open">Open channels <output id="open-count" for="open">3</output> of 6</label>
+<input id="open" type="range" min="0" max="6" value="3">
+<small>Each open channel passes the ion shown. The membrane potential is 0 mV in this comparison.</small>
+</div>
+<small>Each setting starts with 24 particles outside and 4 inside. The diagram shows the distribution after the same short interval. The arrow shows the initial net diffusion rate. Particle counts and permeability values are illustrative.</small>
+</aside>
+</div>
+<details><summary>Check your understanding</summary>
+<p>Keep lipid solubility high and change the molecule from small to large. Then switch to ion channels and close them all. Why does net transport change in each case?</p>
+<details><summary>Show answer</summary><p>A larger molecule generally diffuses less readily through the bilayer when lipid solubility is held constant. Closing the channels removes the pathway for the ion in this model. Both comparisons start with the same concentration difference. The more permeable setting lets more particles enter over the same interval.</p></details>
+</details>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const svgNS = 'http://www.w3.org/2000/svg';
+function drawParticles(outside, inside, radius) {
+  const group = get('particles');
+  group.replaceChildren();
+  for (const [count, offset] of [[outside, 0], [inside, 300]]) {
+    for (let index = 0; index < count; index++) {
+      const slot = index * 7 % 24;
+      const particle = document.createElementNS(svgNS, 'circle');
+      particle.setAttribute('cx', offset + 29 + (slot % 6) * 38);
+      particle.setAttribute('cy', 92 + Math.floor(slot / 6) * 42);
+      particle.setAttribute('r', radius);
+      particle.setAttribute('stroke', 'white');
+      particle.setAttribute('stroke-width', '1');
+      group.append(particle);
+    }
+  }
+}
+function render() {
+  const throughChannels = get('pathway').value === 'channels';
+  const open = Number(get('open').value);
+  const soluble = get('lipid').value === 'high';
+  const small = get('size').value === 'small';
+  const score = throughChannels ? 100 * open / 6 : soluble ? (small ? 90 : 45) : (small ? 24 : 8);
+  get('bilayer-controls').hidden = throughChannels;
+  get('channel-controls').hidden = !throughChannels;
+  get('open-count').textContent = open;
+  get('channel').style.display = throughChannels ? '' : 'none';
+  get('channel').setAttribute('opacity', open ? '1' : '.3');
+  const transferred = Math.ceil(score / 10);
+  const outside = 24 - transferred;
+  const inside = 4 + transferred;
+  drawParticles(outside, inside, throughChannels || small ? 6 : 10);
+  get('counts').textContent = `After the same interval: ${outside} outside · ${inside} inside`;
+  get('particles').setAttribute('fill', throughChannels ? '#315b9b' : '#a84560');
+  get('permeability').value = score;
+  const length = score * 2.2;
+  const start = 280 - length / 2;
+  const end = 280 + length / 2;
+  const head = end - Math.min(length / 2, 16);
+  get('arrow').setAttribute('d', score ? `M${start} 157 H${head} V151 L${end} 162 L${head} 173 V167 H${start} Z` : '');
+  get('route-label').textContent = score ? 'Initial net diffusion into the cell' : 'No net diffusion';
+  get('level').textContent = score === 0 ? 'No permeability via this pathway' : score < 30 ? 'Low permeability' : score < 65 ? 'Moderate permeability' : 'High permeability';
+  get('explanation').textContent = throughChannels
+    ? (open ? 'Opening more channels gives the ion more pathways across the membrane.' : 'All channels are closed. In this model the ion cannot cross the lipid bilayer.')
+    : (soluble ? 'Higher lipid solubility helps the molecule enter the bilayer. ' : 'Low lipid solubility limits entry into the bilayer. ') + (small ? 'Smaller molecules generally diffuse more readily.' : 'Larger molecules generally diffuse less readily.');
+  get('diagram-title').textContent = get('route-label').textContent + '. ' + get('level').textContent + '. ' + get('counts').textContent;
+}
+document.querySelectorAll('select,input').forEach(control => control.addEventListener('input', render));
+render();
+</script>
+</html>
