@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Electrical driving force explorer</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eef4f7;color:#16344a;font:16px/1.5 system-ui,sans-serif}
+main{max-width:1050px;margin:20px auto;padding:clamp(14px,3vw,28px);background:white;border:1px solid #d7e4eb;border-radius:18px}
+h1{font-size:clamp(1.5rem,4vw,2rem);margin:0} p{margin:8px 0 16px}
+.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(240px,1fr);gap:20px}
+svg{display:block;width:100%;background:#d0ebf4;border-radius:12px}
+aside{padding:16px;background:#f4f8fa;border:1px solid #d7e4eb;border-radius:12px}
+fieldset{margin:0 0 16px;padding:0;border:0}legend,label[for]{font-weight:700}
+fieldset label{display:inline-block;margin:5px 12px 0 0}
+input[type=range]{width:100%;margin:12px 0;accent-color:#087788}
+output{display:block;font-weight:700;color:#075e70}
+button{background:white;border:1px solid #a9bdc9;border-radius:8px;color:inherit;font:inherit;padding:7px 10px;cursor:pointer;margin:4px 3px 0 0}
+:focus-visible{outline:3px solid #a45d00;outline-offset:3px}
+.result{padding:12px 15px;background:#edf7f8;border-left:4px solid #087788;border-radius:6px;margin:12px 0 0}
+small{display:block;margin-top:16px;color:#435a6b}
+details{margin-top:16px}summary{cursor:pointer;font-weight:700}
+@media(max-width:690px){main{margin:8px}.grid{grid-template-columns:1fr}}
+</style>
+<main>
+<h1>Electrical driving force across a cell membrane</h1>
+<p>Change the membrane potential or choose a different ion. Watch what happens to the direction of the electrical force.</p>
+<div class="grid">
+<section aria-label="Membrane diagram and result">
+<svg viewBox="0 0 600 340" role="img" aria-labelledby="diagram-title">
+<title id="diagram-title">Electrical driving force on an ion near a cell membrane</title>
+<circle cx="215" cy="173" r="116" fill="#fff1d8" stroke="#387daa" stroke-width="3"/>
+<circle cx="215" cy="173" r="110" fill="none" stroke="#387daa" stroke-width="2"/>
+<g fill="#16344a" font-family="system-ui,sans-serif" text-anchor="middle">
+<text x="215" y="190" font-size="20" font-weight="700">Inside</text>
+<text x="472" y="42" font-size="20" font-weight="700">Outside</text>
+<text id="inside-sign" x="215" y="146" font-size="36">−</text>
+<text id="outside-sign" x="472" y="86" font-size="36">+</text>
+<text id="arrow-label" x="347" y="268" font-size="18" font-weight="700">Electrical driving force</text>
+</g>
+<path id="force" fill="#087788"/>
+<circle id="ion" cx="331" cy="173" r="24" fill="#6443a3" stroke="white" stroke-width="2"/>
+<text id="ion-sign" x="331" y="182" fill="white" text-anchor="middle" font-family="system-ui,sans-serif" font-size="29" font-weight="700">+</text>
+</svg>
+<p class="result" id="result" role="status"><strong id="direction"></strong><br><span id="reason"></span></p>
+</section>
+<aside aria-label="Explorer controls">
+<fieldset><legend>Ion charge</legend>
+<label><input type="radio" name="charge" value="1" checked> Positive (+)</label>
+<label><input type="radio" name="charge" value="-1"> Negative (−)</label>
+</fieldset>
+<label for="voltage">Membrane potential</label>
+<output id="reading" for="voltage"></output>
+<input id="voltage" type="range" min="-100" max="100" step="5" value="-70" aria-describedby="definition">
+<div id="definition">Voltage inside relative to outside.</div>
+<div aria-label="Voltage presets">
+<button type="button" data-voltage="-70">−70 mV</button>
+<button type="button" data-voltage="0">0 mV</button>
+<button type="button" data-voltage="70">+70 mV</button>
+</div>
+<small>Arrow length represents the relative strength of the electrical force for a singly charged ion. Net passive movement also depends on the concentration gradient and requires a pathway across the membrane.</small>
+</aside>
+</div>
+<details><summary>Check your understanding</summary>
+<p>Start at −70 mV with a positive ion. What happens to the electrical force if you switch to a negative ion? What happens if you then set the voltage to 0 mV?</p>
+<details><summary>Show answer</summary><p>The force reverses from inward to outward when the ion charge changes. At 0 mV there is no electrical driving force for either ion.</p></details>
+</details>
+</main>
+<script>
+const voltage = document.getElementById('voltage');
+const get = id => document.getElementById(id);
+
+function render() {
+  const potential = Number(voltage.value);
+  const charge = Number(document.querySelector('input[name="charge"]:checked').value);
+  const formatted = (potential < 0 ? '−' : potential > 0 ? '+' : '') + Math.abs(potential) + ' mV';
+  get('reading').textContent = formatted;
+  voltage.setAttribute('aria-valuetext', formatted);
+  get('inside-sign').textContent = potential < 0 ? '−' : potential > 0 ? '+' : '';
+  get('outside-sign').textContent = potential < 0 ? '+' : potential > 0 ? '−' : '';
+  get('ion').setAttribute('fill', charge > 0 ? '#6443a3' : '#b84338');
+  get('ion-sign').textContent = charge > 0 ? '+' : '−';
+
+  if (potential === 0) {
+    get('force').setAttribute('d', '');
+    get('arrow-label').textContent = 'No electrical driving force';
+    get('direction').textContent = 'No electrical driving force';
+    get('reason').textContent = 'The voltage is the same on both sides of the membrane.';
+    return;
+  }
+
+  const outward = potential * charge > 0;
+  const sign = outward ? 1 : -1;
+  const start = 331 + sign * 30;
+  const length = Math.abs(potential) * 1.8;
+  const tip = start + sign * length;
+  const head = tip - sign * Math.min(18, length);
+  get('force').setAttribute('d', `M ${start} 169 H ${head} V 161 L ${tip} 173 L ${head} 185 V 177 H ${start} Z`);
+  get('arrow-label').textContent = 'Electrical driving force';
+  get('direction').textContent = outward ? 'Outward electrical force' : 'Inward electrical force';
+  const side = potential < 0 ? 'negative' : 'positive';
+  const ion = charge > 0 ? 'positive' : 'negative';
+  get('reason').textContent = `The cell interior is ${side} relative to the outside, so the electrical force on this ${ion} ion points ${outward ? 'out of' : 'into'} the cell.`;
+}
+
+voltage.addEventListener('input', render);
+document.querySelectorAll('input[name="charge"]').forEach(input => input.addEventListener('change', render));
+document.querySelectorAll('button[data-voltage]').forEach(button => {
+  button.addEventListener('click', () => {
+    voltage.value = button.dataset.voltage;
+    render();
+  });
+});
+render();
+</script>
+</html>
