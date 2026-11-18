@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Primary and secondary active transport</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eff5f8;color:#16384b;font:16px/1.5 system-ui,sans-serif}
+main{max-width:1050px;margin:12px auto;padding:clamp(14px,3vw,28px);background:white;border:1px solid #cbdce5;border-radius:16px}
+h1,h2{line-height:1.2;margin:0 0 10px}h1{font-size:clamp(1.5rem,4vw,2rem)}h2{font-size:1.2rem}p{margin:8px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{border:1px solid #cbdce5;border-radius:12px;background:#f5f9fb;padding:14px}
+.buttons{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+button{font:inherit;color:inherit;background:white;border:1px solid #7593a4;border-radius:8px;padding:7px 11px;cursor:pointer}
+button[aria-pressed=true],.primary{color:white;background:#14596f}
+button:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:3px solid #a65800;outline-offset:2px}
+svg{display:block;width:100%;height:auto;background:white;border:1px solid #cbdce5;border-radius:9px}
+svg text{font-family:system-ui,sans-serif;fill:#16384b}
+.status{min-height:3em}small{color:#426073}fieldset{border:0;padding:0;margin:6px 0}legend{font-weight:700}fieldset label{display:block}output{font-weight:700}
+@media(max-width:690px){.grid{grid-template-columns:1fr}main{margin:6px}}
+.energy{background:#e7f3f7;border-left:4px solid #257283;padding:10px 12px;margin:10px 0}.energy dl{margin:5px 0 0}.energy dt{font-weight:650}.energy dd{margin:0 0 5px}
+</style>
+<main>
+<h1>Primary and secondary active transport</h1>
+<p>As you watch, identify what supplies the energy <strong>at each protein</strong> and which substance is moved against its gradient.</p>
+<section id="cycles">
+<div class="grid">
+<article class="card">
+<h2>Sodium–potassium pump</h2>
+<div class="energy"><strong>Primary active transport</strong><dl><dt>Immediate energy source</dt><dd>ATP hydrolysis by the pump</dd><dt>Moved uphill</dt><dd>3 sodium ions out and 2 potassium ions in per ATP</dd></dl></div>
+<svg id="pump-diagram" viewBox="0 0 360 188" role="img"></svg>
+<div class="buttons"><button class="primary" id="pump-play">Play sequence</button><button id="pump-next">Next step</button><button id="pump-reset">Restart cycle</button></div>
+<p id="pump-caption" class="status" role="status"></p>
+</article>
+<article class="card">
+<h2>Sodium–glucose cotransporter</h2>
+<div class="energy"><strong>Secondary active transport</strong><dl><dt>Immediate energy source</dt><dd>2 sodium ions entering down their electrochemical gradient</dd><dt>Moved uphill</dt><dd>1 glucose molecule into the cell against its concentration gradient</dd></dl></div>
+<svg id="co-diagram" viewBox="0 0 360 188" role="img"></svg>
+<div class="buttons"><button class="primary" id="co-play">Play sequence</button><button id="co-next">Next step</button><button id="co-reset">Restart cycle</button></div>
+<p id="co-caption" class="status" role="status"></p>
+</article>
+</div>
+<p><small>The cotransporter shown uses two sodium ions for each glucose molecule, as in SGLT1.</small></p>
+</section>
+<article class="card" style="margin-top:14px">
+<h2>How the two proteins work together</h2>
+<p><strong>ATP powers the pump.</strong> The pump maintains the sodium gradient. Sodium entry through the cotransporter then drives glucose uptake.</p>
+<svg id="link-diagram" viewBox="0 0 360 188" role="img" style="max-width:560px"></svg>
+<div class="buttons"><button class="primary" id="link-play">Play sequence</button><button id="link-next">Next step</button><button id="link-reset">Restart</button></div>
+<p><small><strong style="color:#145b86">Blue arrow: sodium</strong> · <strong style="color:#805300">Gold arrow: glucose</strong></small></p>
+<p id="link-caption" class="status" role="status"></p>
+</article>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const stages = {
+  pump: [
+    ['Three sodium ions bind on the inside.', 'inside', [['Na⁺',3,144]]],
+    ['ATP is hydrolysed. A phosphate group attaches to the pump, causing it to change shape.', 'closed', [['Na⁺',3,93]]],
+    ['The binding sites face outside and release the three sodium ions.', 'outside', [['Na⁺',3,42]]],
+    ['Two potassium ions bind on the outside.', 'outside', [['K⁺',2,59]]],
+    ['The phosphate group is released. The pump opens inward and releases two potassium ions.', 'inside', [['K⁺',2,151]]]
+  ],
+  co: [
+    ['Two sodium ions and one glucose molecule bind on the outside.', 'outside', [['Na⁺',2,43],['Glucose',1,66]]],
+    ['The cotransporter changes shape with both solutes bound.', 'closed', [['Na⁺',2,89],['Glucose',1,107]]],
+    ['Sodium and glucose are released inside. Sodium moves down its electrochemical gradient, driving glucose uptake against its concentration gradient.', 'inside', [['Na⁺',2,140],['Glucose',1,164]]],
+    ['The empty cotransporter returns to its outward-facing shape.', 'outside', []]
+  ]
+};
+const shapes = {outside:'M129 62V115H231V62',inside:'M129 122V71H231V122',closed:'M129 68H231V116H129Z'};
+const colours = {'Na⁺':'#cfdef9','K⁺':'#e7dbfa','Glucose':'#f7d2df'};
+for (const [protein, steps] of Object.entries(stages)) {
+  sequence(protein, steps.length, step => {
+    const [description, shape, groups] = steps[step];
+    const diagram = get(protein + '-diagram');
+    let drawing = '<rect width="360" height="188" fill="#e3f3fa"/><rect y="115" width="360" height="73" fill="#fff1dc"/><rect y="72" width="360" height="43" fill="#b6d7e5"/><text x="12" y="23" font-size="14">Outside</text><text x="12" y="176" font-size="14">Inside</text>';
+    drawing += '<path d="' + shapes[shape] + '" fill="none" stroke="#257283" stroke-width="9" stroke-linejoin="round"/>';
+    for (const [label, count, y] of groups) {
+      for (let i=0;i<count;i++) {
+        const x = 180 + (i-(count-1)/2)*29;
+        drawing += '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (label==='Glucose'?27:13) + '" ry="11" fill="' + colours[label] + '"/><text x="' + x + '" y="' + (y+4) + '" font-size="10" text-anchor="middle">' + label + '</text>';
+      }
+    }
+    if (protein==='pump' && step===1) drawing += '<text x="252" y="146" font-size="13">ATP → ADP</text><text x="248" y="104" font-size="14">P</text>';
+    diagram.innerHTML = drawing;
+    diagram.setAttribute('aria-label', description);
+    get(protein+'-caption').textContent = (step+1) + ' of ' + steps.length + '. ' + description;
+  });
+}
+
+function sequence(key, count, draw) {
+  let step = 0;
+  let timer;
+  const play = get(key + '-play');
+  function stop() {
+    clearInterval(timer);
+    timer = undefined;
+    play.textContent = step === count - 1 ? 'Replay sequence' : 'Play sequence';
+  }
+  function advance() {
+    step = (step + 1) % count;
+    draw(step);
+    if (step === count - 1) stop();
+  }
+  play.onclick = () => {
+    if (timer !== undefined) {
+      stop();
+      return;
+    }
+    if (step === count - 1) {
+      step = 0;
+      draw(step);
+    }
+    play.textContent = 'Pause';
+    timer = setInterval(advance, 7000);
+  };
+  get(key + '-next').onclick = () => { stop(); advance(); stop(); };
+  get(key + '-reset').onclick = () => { step = 0; stop(); draw(step); };
+  draw(step);
+}
+
+const linkStages = [
+  ['ATP powers the sodium–potassium pump', 'The pump uses ATP directly to move sodium out. This maintains a higher sodium concentration outside the cell.'],
+  ['Sodium entry drives glucose uptake', 'Sodium moves back in down its electrochemical gradient through the cotransporter. The cotransporter couples that movement to glucose entry against its concentration gradient.'],
+  ['The pump stops, but uptake continues briefly', 'The sodium gradient is still present just after the pump stops, so it can still drive glucose uptake.'],
+  ['The sodium gradient weakens', 'As sodium continues to enter, the gradient weakens and glucose uptake slows. This is why glucose uptake depends on ATP indirectly. The pump hydrolyses ATP, and the cotransporter uses energy from sodium entry.']
+];
+function inwardArrow(x, colour) {
+  return '<path d="M'+x+' 52v80 m-5-7 5 7 5-7" fill="none" stroke="'+colour+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';
+}
+sequence('link', linkStages.length, step => {
+  const [heading, description] = linkStages[step];
+  const pump = step < 2 ? '#257283' : '#657580';
+  const uptake = step === 3 ? 'Slower glucose uptake' : step === 0 ? 'Sodium gradient maintained' : 'Sodium and glucose enter';
+  const pumpLabel = step < 2 ? 'ATP powers sodium export' : 'Pump off';
+  get('link-diagram').innerHTML =
+    '<rect width="360" height="188" fill="#e3f3fa"/><rect y="104" width="360" height="84" fill="#fff1dc"/><rect y="76" width="360" height="28" fill="#b6d7e5"/>' +
+    '<g text-anchor="middle" font-size="12"><text x="91" y="25">Sodium–potassium pump</text><text x="268" y="25">Sodium–glucose cotransporter</text>' +
+    '<text x="91" y="161">' + pumpLabel + '</text><text x="268" y="161">' + uptake + '</text></g>' +
+    '<rect x="74" y="68" width="34" height="44" rx="8" fill="' + pump + '"/><rect x="251" y="68" width="34" height="44" rx="8" fill="#eecbd9"/>' +
+    (step < 2 ? '<path d="M91 116V51m-7 8 7-8 7 8" fill="none" stroke="#173b57" stroke-width="3"/>' : '') +
+    (step > 0 ? inwardArrow(259, '#145b86') + inwardArrow(277, '#805300') : '');
+  get('link-diagram').setAttribute('aria-label', heading + '. ' + pumpLabel + '. ' + uptake + '.');
+  get('link-caption').textContent = (step + 1) + ' of ' + linkStages.length + '. ' + heading + '. ' + description;
+});
+</script>
+</html>
