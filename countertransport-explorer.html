@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Countertransport explorer</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eef5f8;color:#18374b;font:16px/1.5 system-ui,sans-serif}
+main{max-width:980px;margin:12px auto;padding:clamp(14px,3vw,26px);background:#fff;border:1px solid #cfdee6;border-radius:16px}
+h1,h2{line-height:1.2;margin:0 0 10px}h1{font-size:clamp(1.5rem,4vw,2rem)}h2{font-size:1.2rem}p{margin:8px 0}
+.grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-top:14px}
+.card{background:#f2f8fa;border:1px solid #cfdee6;border-radius:12px;padding:14px;min-width:0}
+svg{width:100%;height:auto;display:block;background:#fff;border-radius:9px}
+.buttons{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+button{font:inherit;color:inherit;background:#fff;border:1px solid #7898a8;border-radius:8px;padding:7px 10px;cursor:pointer}
+button.primary{background:#14596f;color:#fff}button:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid #a65800;outline-offset:2px}
+.caption{padding:10px 12px;background:#fff;border-left:4px solid #257283;min-height:5em}
+.caption strong{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin:10px 0 0;font-weight:650}
+.sodium{color:#145b86}.hydrogen{color:#a13860}
+.compare{margin-top:14px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}main{margin:6px}}
+</style>
+<main>
+<h1>Countertransport</h1>
+<p>Watch how the sodium–hydrogen exchanger couples <strong>sodium entry</strong> to <strong>hydrogen ion exit</strong> through the same membrane protein.</p>
+<div class="grid">
+<section class="card" aria-label="Sodium–hydrogen exchange sequence">
+<svg id="diagram" viewBox="0 0 460 258" role="img" aria-labelledby="diagram-title" font-family="system-ui,sans-serif">
+<title id="diagram-title">Sodium–hydrogen exchanger in the cell membrane</title>
+<rect width="460" height="105" fill="#e1f3fb"/>
+<rect y="151" width="460" height="107" fill="#fff2dc"/>
+<rect y="105" width="460" height="46" fill="#b7d8e7"/>
+<text x="16" y="27" fill="#18374b" font-size="17" font-weight="700">Outside the cell</text>
+<text x="16" y="240" fill="#18374b" font-size="17" font-weight="700">Inside the cell</text>
+<text x="16" y="134" fill="#18374b" font-size="15">Membrane</text>
+<path id="carrier" fill="none" stroke="#24736b" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+<g id="sodium"><circle r="20" fill="#145b86"/><text y="5" fill="white" text-anchor="middle" font-size="15" font-weight="700">Na⁺</text></g>
+<g id="hydrogen"><circle r="20" fill="#a13860"/><text y="5" fill="white" text-anchor="middle" font-size="15" font-weight="700">H⁺</text></g>
+<g id="net-arrows" style="display:none">
+<path d="M164 55V201m-8-9 8 9 8-9" fill="none" stroke="#145b86" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M296 201V55m-8 9 8-9 8 9" fill="none" stroke="#a13860" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<text x="230" y="238" fill="#24574d" text-anchor="middle" font-size="14">Sodium–hydrogen exchanger</text>
+</svg>
+<p class="legend"><span class="sodium">Na⁺ · Sodium</span><span class="hydrogen">H⁺ · Hydrogen ion</span></p>
+<div class="buttons"><button class="primary" id="play">Play sequence</button><button id="next">Next step</button><button id="restart">Restart</button></div>
+<p class="caption" role="status"><strong id="step-title"></strong><span id="step-description"></span></p>
+</section>
+<aside class="card" aria-label="Energy and direction">
+<h2>What supplies the energy?</h2>
+<p><strong>Sodium moves in</strong> down its electrochemical gradient. This drives <strong>hydrogen ions out</strong> against their electrochemical gradient under the conditions shown.</p>
+<p>The exchanger uses the energy of sodium entry. The sodium–potassium pump uses ATP to help maintain the sodium gradient. The exchange is an example of <strong>secondary active transport</strong>.</p>
+<h2 style="margin-top:18px">Why does it matter?</h2>
+<p>Removing hydrogen ions can help a cell recover when its internal pH falls.</p>
+</aside>
+</div>
+<section class="card compare">
+<h2>Compare with symport</h2>
+<p><strong>Countertransport:</strong> Sodium enters and hydrogen ions leave. The two substances move in opposite directions.</p>
+<p><strong>Symport:</strong> Sodium and glucose both enter through the sodium–glucose cotransporter. The two substances move in the same direction.</p>
+</section>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const shapes = {
+  outside: 'M199 96V149H261V96',
+  inside: 'M199 160V107H261V160',
+  summary: 'M199 108H261V148H199Z'
+};
+const steps = [
+  {
+    title:'Sodium binds outside',
+    description:'The exchanger opens towards the outside of the cell. One sodium ion binds.',
+    shape:'outside', sodium:[230,101]
+  },
+  {
+    title:'Sodium is released inside',
+    description:'The exchanger changes shape and releases sodium into the cell. Sodium has moved down its electrochemical gradient.',
+    shape:'inside', sodium:[230,192]
+  },
+  {
+    title:'A hydrogen ion binds inside',
+    description:'With the binding site facing the cell interior, one hydrogen ion binds.',
+    shape:'inside', hydrogen:[230,157]
+  },
+  {
+    title:'The hydrogen ion is released outside',
+    description:'The exchanger changes shape again and releases the hydrogen ion outside. The exchanger is ready to bind another sodium ion.',
+    shape:'outside', hydrogen:[230,62]
+  },
+  {
+    title:'One cycle, two opposite directions',
+    description:'One sodium ion enters for every hydrogen ion that leaves. The arrows summarise the net movement over a complete cycle.',
+    shape:'summary', sodium:[164,66], hydrogen:[296,190], arrows:true
+  }
+];
+let step = 0;
+let timer;
+function drawIon(id, position) {
+  const ion = get(id);
+  ion.style.display = position ? '' : 'none';
+  if (position) ion.setAttribute('transform', 'translate(' + position.join(' ') + ')');
+}
+function draw() {
+  const frame = steps[step];
+  get('carrier').setAttribute('d', shapes[frame.shape]);
+  drawIon('sodium', frame.sodium);
+  drawIon('hydrogen', frame.hydrogen);
+  get('net-arrows').style.display = frame.arrows ? '' : 'none';
+  get('step-title').textContent = (step + 1) + ' of ' + steps.length + ' · ' + frame.title;
+  get('step-description').textContent = frame.description;
+  get('diagram-title').textContent = frame.title + '. ' + frame.description;
+  get('next').disabled = step === steps.length - 1;
+}
+function stop() {
+  clearInterval(timer);
+  timer = undefined;
+  get('play').textContent = step === steps.length - 1 ? 'Replay sequence' : 'Play sequence';
+}
+function advance() {
+  if (step < steps.length - 1) step++;
+  draw();
+  if (step === steps.length - 1) stop();
+}
+get('play').onclick = () => {
+  if (timer !== undefined) {
+    stop();
+    return;
+  }
+  if (step === steps.length - 1) {
+    step = 0;
+    draw();
+  }
+  get('play').textContent = 'Pause';
+  timer = setInterval(advance, 7000);
+};
+get('next').onclick = () => { stop(); advance(); };
+get('restart').onclick = () => { step = 0; stop(); draw(); };
+draw();
+</script>
+</html>
