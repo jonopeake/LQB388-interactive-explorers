@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Electrochemical driving force explorer</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef4f7;color:#16344a;font:16px/1.5 system-ui,sans-serif}main{max-width:1040px;margin:16px auto;background:white;padding:clamp(14px,3vw,28px);border:1px solid #d5e2e9;border-radius:18px}h1{font-size:clamp(1.45rem,4vw,2rem);margin:0}p{margin:8px 0 14px}.grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(245px,1fr);gap:18px}svg{display:block;width:100%;height:auto;border:1px solid #bad1df;border-radius:12px}aside,.result{background:#f1f7fa;padding:14px;border-radius:12px}label,strong{font-weight:700}select,button{font:inherit;color:inherit;background:white;border:1px solid #a4bac9;border-radius:7px;padding:6px 9px}button{cursor:pointer}input[type=range]{width:100%;accent-color:#136d91;margin:12px 0}output{font-weight:700}.buttons{display:flex;flex-wrap:wrap;gap:6px}.result{margin-top:10px;border-left:4px solid #23764d}details{margin-top:14px}summary{cursor:pointer;font-weight:700}:focus-visible{outline:3px solid #a85b00;outline-offset:3px}small{display:block;margin-top:12px;color:#425c6c}@media(max-width:710px){.grid{grid-template-columns:1fr}main{margin:6px}}
+</style>
+<main>
+<h1>Electrochemical driving force</h1>
+<p>Start with potassium at −70 mV. Predict what happens to the net driving force as the cell interior becomes more negative, then move the slider.</p>
+<div class="grid">
+<section aria-label="Driving forces across the membrane">
+<svg viewBox="0 0 600 315" role="img" aria-labelledby="diagram-title">
+<title id="diagram-title">Chemical, electrical and net driving forces across a cell membrane</title>
+<rect width="300" height="315" fill="#fff2db"/>
+<rect x="300" width="300" height="315" fill="#dcf0f7"/>
+<path d="M295 55V291 M305 55V291" stroke="#59849e" stroke-width="2" stroke-dasharray="4 4"/>
+<g fill="#17374a" font-family="system-ui,sans-serif" text-anchor="middle">
+<text x="146" y="31" font-size="21" font-weight="700">Inside the cell</text>
+<text x="454" y="31" font-size="21" font-weight="700">Outside the cell</text>
+<text id="inside" x="146" y="55" font-size="16"></text>
+<text id="outside" x="454" y="55" font-size="16"></text>
+<text x="300" y="98" font-size="19" font-weight="700">Chemical</text>
+<text x="300" y="174" font-size="19" font-weight="700">Electrical</text>
+<text x="300" y="250" font-size="19" font-weight="700">Net electrochemical</text>
+</g>
+<path id="chemical" fill="#b45609"/>
+<path id="electrical" fill="#186995"/>
+<path id="net" fill="#24734e"/>
+<g id="zero" fill="#24734e" font-family="system-ui,sans-serif" text-anchor="middle" font-size="16"></g>
+<text x="300" y="307" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#355b70">Membrane</text>
+</svg>
+<p class="result" role="status"><strong id="direction"></strong><br><span id="explanation"></span></p>
+</section>
+<aside aria-label="Explorer controls">
+<label for="ion">Ion</label>
+<select id="ion"><option value="K">Potassium (K⁺)</option><option value="Na">Sodium (Na⁺)</option></select>
+<p id="equilibrium"></p>
+<label for="voltage">Membrane potential</label>
+<div><output id="reading" for="voltage"></output></div>
+<input id="voltage" type="range" min="-120" max="80" step="1" value="-70" aria-describedby="voltage-help">
+<div id="voltage-help">Voltage inside relative to outside.</div>
+<div class="buttons" style="margin-top:10px">
+<button type="button" data-value="-70">−70 mV</button>
+<button type="button" id="balance">At equilibrium</button>
+<button type="button" data-value="-100">−100 mV</button>
+</div>
+<small>Concentrations stay fixed for each ion. Arrow lengths share the same scale. The arrows show the direction of each driving force. Net passive movement requires an open pathway for the ion.</small>
+</aside>
+</div>
+<details><summary>Check your understanding</summary>
+<p>Use the potassium presets in order. Why does the net arrow reverse even though the potassium concentrations stay the same?</p>
+<details><summary>Show answer</summary><p>At −70 mV the outward chemical force is stronger. At −94 mV the inward electrical force exactly balances it. At −100 mV the inward electrical force is stronger, so the net force points inward.</p></details>
+</details>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const voltage = get('voltage');
+const ion = get('ion');
+const ions = {
+  K: {name:'potassium', inside:140, outside:4.14, equilibrium:-94},
+  Na: {name:'sodium', inside:15, outside:142, equilibrium:60}
+};
+function format(value) {
+  return (value < 0 ? '−' : value > 0 ? '+' : '') + Math.abs(value) + ' mV';
+}
+function arrow(id, value, y) {
+  if (value === 0) {
+    get(id).setAttribute('d', '');
+    return;
+  }
+  const sign = Math.sign(value);
+  const length = Math.abs(value) * 1.3;
+  const tip = 300 + sign * length;
+  const head = tip - sign * Math.min(14, length);
+  get(id).setAttribute('d', `M300 ${y-3} H${head} V${y-8} L${tip} ${y} L${head} ${y+8} V${y+3} H300 Z`);
+}
+function render() {
+  const data = ions[ion.value];
+  const potential = Number(voltage.value);
+  // For these monovalent cations, positive values represent outward drive.
+  const chemical = -data.equilibrium;
+  const electrical = potential;
+  const net = chemical + electrical;
+  get('inside').textContent = data.inside + ' mM';
+  get('outside').textContent = data.outside + ' mM';
+  get('equilibrium').textContent = 'Equilibrium potential: ' + format(data.equilibrium);
+  get('reading').textContent = format(potential);
+  voltage.setAttribute('aria-valuetext', format(potential));
+  arrow('chemical', chemical, 120);
+  arrow('electrical', electrical, 196);
+  arrow('net', net, 272);
+  get('zero').textContent = net === 0 ? 'Balanced' : '';
+  get('zero').setAttribute('x', '358');
+  get('zero').setAttribute('y', '277');
+  get('direction').textContent = net === 0 ? 'No net driving force' : 'Net driving force: ' + (net > 0 ? 'outward' : 'inward');
+  if (net === 0) {
+    get('explanation').textContent = 'The forces are equal and opposite. The concentration gradient remains.';
+  } else if (electrical === 0) {
+    get('explanation').textContent = 'At 0 mV, the concentration gradient supplies the entire driving force.';
+  } else if (Math.sign(chemical) === Math.sign(electrical)) {
+    get('explanation').textContent = 'The chemical and electrical forces both point ' + (net > 0 ? 'outward.' : 'inward.');
+  } else {
+    const stronger = Math.abs(chemical) > Math.abs(electrical) ? 'chemical' : 'electrical';
+    get('explanation').textContent = 'The forces oppose each other. The ' + stronger + ' force is stronger.';
+  }
+  get('diagram-title').textContent = 'For ' + data.name + ' at ' + format(potential) + ', the chemical force is ' + (chemical > 0 ? 'outward' : 'inward') + ', the electrical force is ' + (electrical === 0 ? 'zero' : electrical > 0 ? 'outward' : 'inward') + ', and the net force is ' + (net === 0 ? 'zero.' : net > 0 ? 'outward.' : 'inward.');
+}
+voltage.addEventListener('input', render);
+ion.addEventListener('change', render);
+document.querySelectorAll('button[data-value]').forEach(button => {
+  button.addEventListener('click', () => { voltage.value = button.dataset.value; render(); });
+});
+get('balance').addEventListener('click', () => { voltage.value = ions[ion.value].equilibrium; render(); });
+render();
+</script>
+</html>
