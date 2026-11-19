@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What sets the resting membrane potential?</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f2f7f6;color:#17343c;font:16px/1.5 system-ui,sans-serif}main{max-width:920px;margin:auto;padding:24px 16px}h1{font-size:clamp(1.65rem,4vw,2.35rem);line-height:1.15;margin:0 0 12px}h2{font-size:1.12rem;margin:0 0 12px}p{margin:0 0 12px}section{background:#fff;border:1px solid #c5dbd8;border-radius:14px;padding:16px;margin:14px 0}.row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}label,output{font-weight:700}input{width:100%;accent-color:#156b65;margin:10px 0}button{background:#fff;border:1px solid #327470;color:#174b47;padding:6px 12px;border-radius:6px;font:inherit;cursor:pointer}button:disabled{opacity:.55;cursor:default}:focus-visible{outline:3px solid #ac511c;outline-offset:3px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid section{margin:0}.small{font-size:.9rem}.endpoints{display:flex;justify-content:space-between;gap:12px}.endpoints span:last-child{text-align:right}.rail{height:52px;position:relative;margin:14px 12px 6px}.axis{position:absolute;top:32px;width:100%;border-top:3px solid #9ab1b1}.pointer{position:absolute;top:0;transform:translateX(-50%);background:#174d51;color:white;border-radius:5px;padding:1px 5px;white-space:nowrap}.pointer::after{content:"";position:absolute;top:100%;left:50%;height:9px;border-left:2px solid #174d51}.current-track{position:relative;height:14px;background:#eaf1f1;border-radius:4px;margin:4px 0 11px}.arrow{position:absolute;height:100%;background:#955018;clip-path:polygon(0 25%,calc(100% - 9px) 25%,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,calc(100% - 9px) 75%,0 75%)}.arrow.sodium{background:#176781;transform:scaleX(-1);right:0}.result{background:#e3f4ef;border-left:4px solid #197266}.result p:last-child{margin:4px 0 0}.note{margin-top:14px}@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style>
+<main>
+<h1>What sets the resting membrane potential?</h1>
+<p>Start at −70 mV. Predict what will happen if you open more sodium leak channels, then move the slider to test your prediction. Select <strong>Reset</strong> and try opening fewer channels.</p>
+<p>Which setting keeps the voltage at −70 mV? When the voltage moves to a new level and steadies, compare the two current arrows again.</p>
+<section aria-label="Sodium leak control">
+<div class="row"><label for="leak">Open sodium leak channels</label><output id="level" for="leak">1× baseline</output></div>
+<input type="range" id="leak" min="0.5" max="1.5" step="0.05" value="1">
+<div class="row small"><span>Fewer open</span><span>More open</span></div>
+<div class="row" style="justify-content:flex-start;margin-top:10px"><button id="reset" type="button">Reset</button><button id="pause" type="button" disabled>Pause</button></div>
+</section>
+<div class="grid">
+<section>
+<h2>Membrane potential</h2>
+<div class="rail" aria-hidden="true"><div class="axis"></div><strong class="pointer" id="pointer"></strong></div>
+<div class="endpoints small"><span><strong>−95 mV</strong><br>Potassium equilibrium potential</span><span><strong>+61 mV</strong><br>Sodium equilibrium potential</span></div>
+<p class="small note">Both equilibrium potentials stay fixed because the ion concentrations stay the same.</p>
+</section>
+<section>
+<h2>Leak currents</h2>
+<div class="row small"><strong>Sodium</strong><span>← Into the neuron</span></div>
+<div class="current-track" aria-hidden="true"><div class="arrow sodium" id="sodium"></div></div>
+<div class="row small"><strong>Potassium</strong><span>Out of the neuron →</span></div>
+<div class="current-track" aria-hidden="true"><div class="arrow" id="potassium"></div></div>
+<p class="small">Arrow length shows relative current. Equal lengths mean equal amounts of positive charge enter and leave per second.</p>
+</section>
+</div>
+<section class="result" role="status" aria-atomic="true"><strong id="stage"></strong><p id="explain"></p></section>
+<p class="small"><strong>What about the sodium–potassium pump?</strong> This model isolates sodium and potassium leak currents. In a neuron, the pump helps maintain the ion concentration gradients over time.</p>
+</main>
+<script>
+'use strict';
+const get = id => document.getElementById(id);
+const leak = get('leak');
+const pause = get('pause');
+const resting = -70;
+const potassiumEquilibrium = -95;
+const sodiumEquilibrium = 61;
+const baselineSodiumConductance = (resting - potassiumEquilibrium) / (sodiumEquilibrium - resting);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let voltage = resting;
+let sodiumConductance = baselineSodiumConductance;
+let target = resting;
+let startVoltage = resting;
+let elapsed = 0;
+let lastTime;
+let frame;
+const duration = 11500;
+const currentDisplayScale = 2;
+
+function render() {
+  get('pointer').textContent = Math.round(voltage).toString().replace('-', '−') + ' mV';
+  get('pointer').style.left = ((voltage - potassiumEquilibrium) / (sodiumEquilibrium - potassiumEquilibrium) * 100) + '%';
+  get('sodium').style.width = (currentDisplayScale * sodiumConductance * (sodiumEquilibrium - voltage)) + '%';
+  get('potassium').style.width = (currentDisplayScale * (voltage - potassiumEquilibrium)) + '%';
+}
+
+function describe(stage, explanation) {
+  if (get('stage').textContent === stage && get('explain').textContent === explanation) return;
+  get('stage').textContent = stage;
+  get('explain').textContent = explanation;
+}
+
+function settle() {
+  voltage = target;
+  render();
+  pause.disabled = true;
+  pause.textContent = 'Pause';
+  const level = Math.round(voltage).toString().replace('-', '−') + ' mV';
+  describe('Currents balance at ' + level, 'Sodium still enters and potassium still leaves. The inward and outward currents are equal, so the voltage stays steady.');
+}
+
+function tick(now) {
+  if (lastTime !== undefined) elapsed += Math.min(50, now - lastTime);
+  lastTime = now;
+  if (elapsed >= duration) {
+    frame = undefined;
+    settle();
+    return;
+  }
+  const progress = Math.max(0, (elapsed - 2200) / (duration - 2200));
+  // Exponential relaxation is slowed for display and normalised to meet the steady state.
+  const fraction = (1 - Math.exp(-3 * progress)) / (1 - Math.exp(-3));
+  voltage = startVoltage + (target - startVoltage) * fraction;
+  render();
+  if (elapsed >= 2200) {
+    if (target > startVoltage) {
+      describe('The membrane depolarises', 'As the voltage rises, the inward driving force on sodium weakens and the outward driving force on potassium strengthens.');
+    } else {
+      describe('The membrane becomes more negative', 'As the voltage falls, the inward driving force on sodium strengthens and the outward driving force on potassium weakens.');
+    }
+  }
+  frame = requestAnimationFrame(tick);
+}
+
+leak.oninput = () => {
+  const level = Number(leak.value);
+  const previousConductance = sodiumConductance;
+  sodiumConductance = baselineSodiumConductance * level;
+  target = (potassiumEquilibrium + sodiumConductance * sodiumEquilibrium) / (1 + sodiumConductance);
+  get('level').textContent = level + '× baseline';
+  leak.setAttribute('aria-valuetext', level + ' times baseline');
+  cancelAnimationFrame(frame);
+  frame = undefined;
+  startVoltage = voltage;
+  elapsed = 0;
+  lastTime = undefined;
+  if (reducedMotion.matches || Math.abs(target - voltage) < 0.01) {
+    settle();
+    return;
+  }
+  render();
+  const imbalance = target > voltage ? 'inward sodium current is larger' : 'outward potassium current is larger';
+  describe(sodiumConductance > previousConductance ? 'More sodium leak channels are open' : 'Fewer sodium leak channels are open',
+    'Before the voltage changes, the ' + imbalance + '. Potassium channels stay the same.');
+  pause.disabled = false;
+  pause.textContent = 'Pause';
+  frame = requestAnimationFrame(tick);
+};
+
+pause.onclick = () => {
+  if (frame !== undefined) {
+    cancelAnimationFrame(frame);
+    frame = undefined;
+    pause.textContent = 'Resume';
+    return;
+  }
+  lastTime = undefined;
+  pause.textContent = 'Pause';
+  frame = requestAnimationFrame(tick);
+};
+
+get('reset').onclick = () => {
+  cancelAnimationFrame(frame);
+  frame = undefined;
+  leak.value = '1';
+  leak.setAttribute('aria-valuetext', '1 time baseline');
+  get('level').textContent = '1× baseline';
+  sodiumConductance = baselineSodiumConductance;
+  target = resting;
+  settle();
+};
+
+settle();
+</script>
+</html>
