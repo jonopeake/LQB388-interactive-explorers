@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Osmolarity and tonicity explorer</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef5f8;color:#18374b;font:16px/1.5 system-ui,sans-serif}main{max-width:1020px;margin:12px auto;padding:clamp(14px,3vw,26px);background:#fff;border:1px solid #cfdee6;border-radius:16px}h1{margin:0;line-height:1.2;font-size:clamp(1.5rem,4vw,2rem)}p{margin:8px 0}.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-top:14px}.card{min-width:0;padding:14px;background:#f2f8fa;border:1px solid #cfdee6;border-radius:12px}svg{display:block;width:100%;height:auto;border-radius:9px}select,button{font:inherit;color:inherit;background:white;border:1px solid #7898a8;border-radius:8px;padding:7px 10px}select,input[type=range]{width:100%}input{accent-color:#146582}button{cursor:pointer;margin:4px 4px 4px 0}button:disabled{opacity:.55;cursor:default}:focus-visible{outline:3px solid #9c5700;outline-offset:2px}label,summary,dt{font-weight:700}dd{margin:0 0 9px}dl{margin:12px 0}small{color:#425f70}summary{cursor:pointer}details{margin-top:14px}.caption{min-height:5em;background:white;border-left:4px solid #146582;padding:9px 11px}.legend{font-size:.9rem}.urea{color:#884500}.fixed{color:#73398c}@media(max-width:700px){.grid{grid-template-columns:1fr}main{margin:6px}}
+</style>
+<main>
+<h1>Osmolarity and tonicity</h1>
+<p>Can two solutions with the same osmolarity have different effects on cell volume?</p>
+<div class="grid">
+<section class="card" aria-label="Cell and surrounding solution">
+<svg viewBox="0 0 500 330" role="img" aria-labelledby="graphic" font-family="system-ui,sans-serif">
+<title id="graphic">Cell in a solution containing urea</title>
+<rect width="500" height="330" fill="#dbf1f7"/>
+<text x="16" y="26" fill="#18374b" font-size="16" font-weight="700">Surrounding solution</text>
+<g id="bath-dots"></g>
+<circle id="cell" cx="250" cy="165" r="62" fill="#fff2d5" stroke="#347da2" stroke-width="4"/>
+<circle cx="250" cy="165" r="62" fill="none" stroke="#347da2" stroke-width="1.5" stroke-dasharray="4 4"/>
+<g id="cell-dots"></g>
+<g id="arrows"></g>
+</svg>
+<p class="legend"><strong class="fixed">●</strong> Solute that cannot cross &nbsp; <strong class="urea">○</strong> Urea &nbsp; <strong style="color:#146582">→</strong> Net water movement<br>Dashed circle shows the starting cell size.</p>
+<p class="caption" id="caption" role="status"></p>
+</section>
+<section class="card" aria-label="Explorer controls">
+<label for="bath">Choose the surrounding solution</label>
+<select id="bath">
+<option value="urea">300 mOsm/L urea</option>
+<option value="equal">300 mOsm/L non-permeating solute</option>
+<option value="mixed">300 mOsm/L mixed solutes</option>
+<option value="hyper">450 mOsm/L non-permeating solute</option>
+</select>
+<dl>
+<dt>Osmolarity at the start</dt><dd id="osmolarity"></dd>
+<dt>Tonicity relative to the cell</dt><dd id="tonicity"></dd>
+<dt>Cell volume in this frame</dt><dd id="volume"></dd>
+</dl>
+<button id="play" type="button">Play sequence</button><button id="next" type="button">Next step</button><button id="reset" type="button">Restart</button>
+<p><small>Each case starts with 300 mOsm/L of non-permeating solute inside the cell. The surrounding solution is large enough to keep its concentration constant. The frames illustrate the sequence of changes.</small></p>
+</section>
+</div>
+<details><summary>Compare the two 300 mOsm/L solutions</summary>
+<p>Play the urea case, then choose 300 mOsm/L non-permeating solute. The starting osmolarities match in both cases. Why does the cell swell in only one of them?</p>
+<details><summary>Show explanation</summary><p>Osmolarity counts all dissolved particles. Tonicity depends on solutes that sustain an osmotic difference across the membrane. Urea enters the cell and water follows. The non-permeating solutes stay on their own sides. When present at equal concentrations, they produce no sustained change in cell volume.</p></details>
+</details>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const cases = {
+  urea: {fixed:0, urea:300, tone:'Hypotonic', volume:[1,1,1.36,1.78]},
+  equal:{fixed:300, urea:0, tone:'Isotonic', volume:[1,1,1,1]},
+  mixed:{fixed:225, urea:75, tone:'Hypotonic', volume:[1,1,1.16,4/3]},
+  hyper:{fixed:450, urea:0, tone:'Hypertonic', volume:[1,.86,.73,2/3]}
+};
+const captions = {
+  urea:[
+    'At the start, both sides contain 300 mOsm/L. There is no initial osmotic difference to drive net water movement.',
+    'Urea begins to enter down its concentration gradient. This briefly raises the total solute concentration inside and favours water entry.',
+    'Water follows by osmosis and the cell swells. The trapped solutes are diluted as the cell gains water.',
+    'Swelling is still in progress. With no non-permeating solute outside, this model has no finite volume at osmotic equilibrium. A real cell may rupture.'
+  ],
+  equal:[
+    'At the start, both sides contain 300 mOsm/L of solute that cannot cross.',
+    'The solutes stay on their own sides. Water crosses in both directions at equal rates.',
+    'The cell has no net gain or loss of water.',
+    'Cell volume stays the same. This solution is both iso-osmotic and isotonic.'
+  ],
+  mixed:[
+    'Both sides start at 300 mOsm/L. Outside, 225 mOsm/L comes from non-permeating solute and 75 mOsm/L from urea.',
+    'Urea begins to enter, creating an osmotic difference that draws water in.',
+    'As water enters, the trapped solutes inside become more dilute.',
+    'Urea has equilibrated and the non-permeating solutes are now equally concentrated on both sides. Net water movement stops at a larger cell volume.'
+  ],
+  hyper:[
+    'The outside has a higher concentration of non-permeating solute.',
+    'Water leaves the cell by osmosis and the cell begins to shrink.',
+    'As the cell loses water, its trapped solutes become more concentrated.',
+    'The effective solute concentrations now match and net water movement stops. The cell is smaller than it was at the start.'
+  ]
+};
+let step = 0;
+let timer;
+function dot(x,y,urea) {
+  return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.3" fill="'+(urea?'#ffd785':'#8c4aa1')+'" stroke="'+(urea?'#a65e18':'none')+'"/>';
+}
+function draw() {
+  const key = get('bath').value;
+  const model = cases[key];
+  const volume = model.volume[step];
+  const radius = 62 * Math.cbrt(volume);
+  get('cell').setAttribute('r', radius);
+  let bath = '';
+  let slot = 0;
+  const fixedCount = Math.round(model.fixed / 10);
+  const total = Math.round((model.fixed + model.urea) / 10);
+  for (let i = 0; i < total; i++) {
+    let x,y;
+    do {
+      const position = (slot++ * 53) % 187;
+      x = 21 + position % 17 * 28;
+      y = 48 + Math.floor(position / 17) * 24;
+    } while (Math.hypot(x-250,y-165) < 83);
+    bath += dot(x,y,i >= fixedCount);
+  }
+  get('bath-dots').innerHTML = bath;
+  const ureaCount = Math.round(model.urea / 15 * [0,.23,.7,1][step] * volume);
+  let cell = '';
+  for (let i = 0; i < 24 + ureaCount; i++) {
+    const angle = i * 2.399963;
+    const distance = (radius-8) * Math.sqrt((i+.5)/(24+ureaCount));
+    cell += dot(250+distance*Math.cos(angle),165+distance*Math.sin(angle),i>=24);
+  }
+  get('cell-dots').innerHTML = cell;
+  const waterIn = (key === 'urea' && step > 0) || (key === 'mixed' && step > 0 && step < 3);
+  const waterOut = key === 'hyper' && step < 3;
+  const arrow = (x,y,dx,colour,label) => {
+    const tip = x + dx;
+    const head = tip - Math.sign(dx)*10;
+    return '<path d="M'+x+' '+y+' H'+tip+' m'+(head-tip)+' -6 L'+tip+' '+y+' L'+head+' '+(y+6)+'" fill="none" stroke="'+colour+'" stroke-width="3"/><text x="'+((x+tip)/2)+'" y="'+(y-9)+'" text-anchor="middle" font-size="13" fill="'+colour+'">'+label+'</text>';
+  };
+  get('arrows').innerHTML = (waterIn ? arrow(397,184,-102,'#146582','Water in') : waterOut ? arrow(302,184,95,'#146582','Water out') : '') +
+    (model.urea && step > 0 && (step < 3 || key === 'urea') ? arrow(390,131,-98,'#884500','Urea in') : '');
+  get('osmolarity').textContent = (total * 10 === 300 ? 'Equal to the cell' : 'Higher outside') + ' · ' + (model.fixed + model.urea) + ' mOsm/L outside';
+  get('tonicity').textContent = model.tone;
+  get('volume').textContent = Math.round(volume*100) + '% of starting volume (illustrative)';
+  get('caption').textContent = (step+1) + ' of 4. ' + captions[key][step];
+  get('graphic').textContent = get('caption').textContent + ' ' + get('volume').textContent;
+  get('next').disabled = step === 3;
+}
+function stop() {
+  clearInterval(timer);
+  timer = undefined;
+  get('play').textContent = step === 3 ? 'Replay sequence' : 'Play sequence';
+}
+function next() {
+  if (step < 3) step++;
+  draw();
+  if (step === 3) stop();
+}
+get('play').onclick = () => {
+  if (timer !== undefined) { stop(); return; }
+  if (step === 3) { step = 0; draw(); }
+  get('play').textContent = 'Pause';
+  timer = setInterval(next,6500);
+};
+get('next').onclick = () => { stop(); next(); };
+function restart() { step=0; stop(); draw(); }
+get('reset').onclick = restart;
+get('bath').onchange = restart;
+draw();
+</script>
+</html>
