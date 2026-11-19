@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What changes when a receptor activates?</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#ebf3f7;color:#18364a;font:16px/1.5 system-ui,sans-serif}
+main{max-width:1040px;margin:12px auto;padding:clamp(14px,3vw,28px);background:white;border:1px solid #cddde6;border-radius:16px}
+h1{font-size:clamp(1.55rem,4vw,2.15rem);line-height:1.15;margin:0 0 10px}
+p{margin:8px 0}h2{font-size:1.1rem;margin:0 0 5px}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+button{font:inherit;color:inherit;padding:8px 12px;border:1px solid #7895a7;border-radius:8px;background:white;cursor:pointer}
+button[aria-pressed=true],#next{background:#14596f;color:white}
+button:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:3px solid #975300;outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px}
+.card{background:#f1f7fa;border:1px solid #cbdde6;border-radius:12px;padding:14px;min-width:0}
+svg{display:block;width:100%;max-width:570px;margin:10px auto;border-radius:8px}
+svg text{font-family:system-ui,sans-serif;fill:#18364a}
+.caption{background:white;border-left:4px solid #14596f;padding:9px 11px}
+.stage{font-weight:700}.context{color:#3b5769;font-size:.94rem}
+summary{cursor:pointer;font-weight:700}details{margin-top:12px}
+.arrival{animation:arrive 850ms ease-out both}
+@keyframes arrive{from{transform:translateY(38px)}to{transform:translateY(0)}}
+.entry{animation:enter 850ms ease-out both}
+@keyframes enter{from{transform:translateY(-67px)}to{transform:translateY(0)}}
+.relay{animation:reveal 700ms ease-out both}
+@keyframes reveal{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.arrival,.entry,.relay{animation:none}}
+@media(max-width:540px){main{margin:5px}}
+</style>
+</head>
+<body><main>
+<h1>What changes when a receptor activates?</h1>
+<p>Choose a receptor type. Use <strong>Next step</strong> to follow each messenger from arrival to a change in cell function. GPCR stands for G protein-coupled receptor.</p>
+<nav class="row" aria-label="Receptor comparisons">
+<button type="button" data-mode="acetylcholine" aria-pressed="true">Ligand-gated channel vs GPCR</button>
+<button type="button" data-mode="insulin" aria-pressed="false">Enzyme-linked receptor</button>
+<button type="button" data-mode="cortisol" aria-pressed="false">Intracellular receptor</button>
+<button type="button" data-mode="adrenaline" aria-pressed="false">GPCR in the airway</button>
+<button type="button" data-mode="heart" aria-pressed="false">GPCRs in the heart</button>
+</nav>
+<div class="row">
+<button type="button" id="next">Next step</button><button type="button" id="restart">Restart</button>
+<p id="stage" class="stage" role="status"></p>
+</div>
+<div id="panels" class="grid" aria-live="polite"></div>
+<p id="context" class="context"></p>
+<details>
+<summary>Check your understanding</summary>
+<p>Both acetylcholine examples change ion movement. Which receptor is a ligand-gated ion channel, and how can you tell?</p>
+<details><summary>Show explanation</summary><p>The nicotinic receptor is a ligand-gated ion channel. Acetylcholine binds to the protein that forms the pore. The muscarinic receptor activates a G protein that changes the activity of a separate ion channel.</p></details>
+</details>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const scenes = {
+ heartAcetylcholine: {
+  title: 'Acetylcholine in the heart', chemistry: 'Acetylcholine · choline ester', type: 'G protein-coupled receptor',
+  notes: [
+   'Acetylcholine released by parasympathetic neurons reaches a heart pacemaker cell.',
+   'Acetylcholine binds to an M₂ muscarinic receptor at the cell surface.',
+   'The M₂ receptor activates Gᵢ, which lowers cyclic adenosine monophosphate (cAMP). This reduces the inward current through pacemaker channels, so the voltage rises more slowly towards threshold.',
+   'The cell takes longer to reach threshold and fires less often.'
+  ]
+ },
+ heartAdrenaline: {
+  title: 'Adrenaline in the heart', chemistry: 'Adrenaline · amine (catecholamine)', type: 'G protein-coupled receptor',
+  notes: [
+   'Circulating adrenaline reaches a heart pacemaker cell.',
+   'Adrenaline binds to a β₁ adrenergic receptor at the cell surface.',
+   'The β₁ receptor activates Gₛ, which raises cyclic adenosine monophosphate (cAMP). This increases the inward current through pacemaker channels, so the voltage rises faster towards threshold.',
+   'The cell reaches threshold sooner and fires more often.'
+  ]
+ },
+ adrenaline: {
+  title: 'Airway smooth muscle cell', type: 'G protein-coupled receptor',
+  chemistry: 'Adrenaline · amine (catecholamine)',
+  notes: [
+   'Adrenaline, a water-soluble amine messenger, reaches the airway smooth muscle cell.',
+   'Adrenaline binds to a beta₂ adrenergic receptor on the cell surface.',
+   'The activated receptor signals through a G protein. This increases the intracellular second messenger cyclic adenosine monophosphate.',
+   'The signal favours smooth muscle relaxation. As the muscle relaxes, the airway widens.'
+  ]
+ },
+ nicotinic: {
+  title: 'Skeletal muscle fibre', chemistry: 'Acetylcholine · choline ester', type: 'Ligand-gated ion channel',
+  notes: [
+   'Acetylcholine reaches the outside of the muscle fibre.',
+   'Acetylcholine binds to the nicotinic receptor, which forms an ion channel.',
+   'The receptor’s own pore opens and allows ions to cross.',
+   'At the resting membrane potential there is net entry of positive charge. The muscle fibre depolarises.'
+  ]
+ },
+ muscarinic: {
+  title: 'Heart pacemaker cell', chemistry: 'Acetylcholine · choline ester', type: 'G protein-coupled receptor',
+  notes: [
+   'Acetylcholine reaches the outside of a heart pacemaker cell.',
+   'Acetylcholine binds to a muscarinic receptor at the cell surface.',
+   'The receptor activates a G protein, which helps open a separate potassium channel.',
+   'Increased potassium movement out of the cell helps delay the next action potential. Pacemaker firing slows.'
+  ]
+ },
+ insulin: {
+  title: 'Skeletal muscle fibre', chemistry: 'Insulin · peptide', type: 'Enzyme-linked receptor',
+  notes: [
+   'Insulin reaches the outside of the muscle fibre.',
+   'Insulin binds to its cell-surface receptor.',
+   'Binding activates the receptor’s enzyme activity. The signal causes more glucose transporters to move to the membrane.',
+   'The additional transporters increase the capacity for glucose uptake by facilitated diffusion when the gradient favours entry.'
+  ]
+ },
+ cortisol: {
+  title: 'Cortisol-responsive cell', chemistry: 'Cortisol · steroid', type: 'Intracellular receptor',
+  notes: [
+   'Free cortisol reaches the target cell.',
+   'Cortisol crosses the plasma membrane and binds to a receptor inside the cell.',
+   'The activated receptor acts in the nucleus and regulates the transcription of target genes.',
+   'Changes in gene expression can alter the production of proteins involved in metabolism.'
+  ]
+ }
+};
+const stages = ['Messenger arrives','Messenger binds','Receptor activation changes the cell','Cell response'];
+const context = {
+ heart: 'Both receptors are G protein-coupled receptors (GPCRs). Step 3 shows one pathway these receptors use to change pacemaker firing. In Step 4, compare the traces on the same time scale. Each peak represents one pacemaker action potential.',
+ adrenaline: 'In the autonomic nervous system module, you’ll revisit how adrenergic receptor subtypes shape organ responses.',
+ acetylcholine: 'In neurophysiology, you’ll revisit nicotinic receptors at the neuromuscular junction and muscarinic receptors in autonomic control of the heart.',
+ insulin: 'In endocrinology, you’ll revisit insulin action when you study regulation of blood glucose.',
+ cortisol: 'In endocrinology, you’ll revisit cortisol when you study the hypothalamic–pituitary–adrenal axis.'
+};
+let mode = 'acetylcholine';
+let step = 0;
+let animate = false;
+
+function text(x, y, value, size = 13) {
+ return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-size="'+size+'">'+value+'</text>';
+}
+function messenger(x, y, label, motion = '') {
+ return '<g class="'+motion+'"><circle cx="'+x+'" cy="'+y+'" r="12" fill="#f7cf89" stroke="#995915"/>'+text(x,y+4,label,10)+'</g>';
+}
+function arrow(x1,y1,x2,y2,colour='#176780') {
+ const angle=Math.atan2(y2-y1,x2-x1);
+ const a=angle+.55,b=angle-.55;
+ return '<path d="M'+x1+' '+y1+' L'+x2+' '+y2+' M'+(x2-9*Math.cos(a))+' '+(y2-9*Math.sin(a))+' L'+x2+' '+y2+' L'+(x2-9*Math.cos(b))+' '+(y2-9*Math.sin(b))+'" fill="none" stroke="'+colour+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+}
+function channel(x,open) {
+ const gap=open?10:3;
+ return '<rect x="'+(x-gap-10)+'" y="70" width="10" height="43" rx="4" fill="#236783"/><rect x="'+(x+gap)+'" y="70" width="10" height="43" rx="4" fill="#236783"/>'+
+  (open?'':'<path d="M'+(x-gap)+' 91H'+(x+gap)+'" stroke="#236783" stroke-width="5"/>');
+}
+function receptor(x,y,active) {
+ return '<path d="M'+(x-12)+' '+(y-17)+'v23q12 12 24 0v-23" fill="none" stroke="'+(active?'#157154':'#526f8d')+'" stroke-width="8" stroke-linecap="round"/>';
+}
+function transporter(x,y,motion='') {
+ return '<g class="'+motion+'"><rect x="'+(x-10)+'" y="'+(y-19)+'" width="20" height="38" rx="6" fill="#b1e5ce" stroke="#157154" stroke-width="2"/><path d="M'+x+' '+(y-12)+'v24" stroke="#157154" stroke-width="2"/></g>';
+}
+function pacemakerTrace(slower) {
+ const end = 4;
+ const cycle = slower ? 1.55 : .75;
+ const x = seconds => 52 + seconds * 86;
+ const points = [];
+ for (let i = 0; i <= 400; i++) {
+  const time = i / 100;
+  const phase = (time % cycle) / cycle;
+  const y = phase < .78 ? 161 - phase / .78 * 44
+   : phase < .83 ? 117 - (phase - .78) / .05 * 59
+   : 58 + (phase - .83) / .17 * 103;
+  points.push(x(time).toFixed(1)+','+y.toFixed(1));
+ }
+ const title = slower ? 'Pacemaker firing slows' : 'Pacemaker firing speeds up';
+ return '<svg viewBox="0 0 420 220" role="img" aria-label="'+title+'. Schematic trace over four seconds.">'+
+  '<rect width="420" height="220" fill="#fff"/>'+text(224,28,title,15)+
+  '<path d="M52 49V177H396" fill="none" stroke="#7895a7"/>'+
+  '<path d="M52 117H396" stroke="#7895a7" stroke-dasharray="5 4"/>'+text(352,109,'Threshold',11)+
+  '<text x="17" y="117" text-anchor="middle" font-size="11" transform="rotate(-90 17 117)">Membrane voltage</text>'+
+  '<polyline points="'+points.join(' ')+'" fill="none" stroke="'+(slower?'#765280':'#157154')+'" stroke-width="2.5"/>'+
+  Array.from({length:end+1},(_, second)=>text(x(second),193,second,11)).join('')+text(224,213,'Illustrative time (s)',12)+'</svg>';
+}
+function diagram(key) {
+ const heart = key === 'heartAcetylcholine' || key === 'heartAdrenaline';
+ if(heart && step === 3) return pacemakerTrace(key === 'heartAcetylcholine');
+ const active=step>=2;
+ let d='<rect width="420" height="220" fill="#deeff8"/><rect y="100" width="420" height="120" fill="#fff2dd"/><rect y="82" width="420" height="18" fill="#aac8d8"/>'+text(58,23,'Outside cell')+text(50,201,'Inside cell')+text(365,94,'Membrane',12);
+ if(heart) {
+  const slower = key === 'heartAcetylcholine';
+  d += receptor(210,83,active)+messenger(step===0?150:210,step===0?44:60,slower?'ACh':'Adr')+
+   text(210,130,slower?'M₂ muscarinic receptor':'β₁ adrenergic receptor',14);
+  if(active) {
+   d += '<g class="relay">';
+   d += arrow(210,106,210,137);
+   d += text(100,157,slower?'Gᵢ activated':'Gₛ activated',14);
+   d += arrow(155,152,182,152);
+   d += text(222,157,slower?'cAMP ↓':'cAMP ↑',14);
+   d += arrow(257,152,282,152);
+   d += text(346,157,slower?'Inward current ↓':'Inward current ↑',13);
+   d += text(220,181,'Through pacemaker channels',12);
+   d += text(220,207,slower?'Slower rise towards threshold':'Faster rise towards threshold',14);
+   d += '</g>';
+  }
+ }
+ if(key==='nicotinic') {
+  d+=channel(210,active)+messenger(step===0?145:210,step===0?46:58,'ACh')+text(210,150,'Nicotinic receptor');
+  if(active) d+=arrow(210,76,210,131)+text(266,125,'Net positive charge in',11);
+ }
+ if(key==='muscarinic') {
+  d+=receptor(122,83,step>0)+messenger(step===0?85:122,step===0?46:62,'ACh')+channel(287,active)+text(119,126,'Muscarinic receptor',12)+text(291,151,'Separate potassium channel',12);
+  if(active) {
+   d+='<ellipse cx="184" cy="151" rx="30" ry="13" fill="#c9e9d8"/>'+text(184,155,'G protein',11)+arrow(137,109,161,141)+arrow(212,145,268,113)+arrow(287,116,287,53)+text(311,49,'K⁺ out',12);
+  }
+ }
+ if(key==='insulin') {
+  d+=receptor(111,83,step>0)+messenger(step===0?77:111,step===0?46:61,'Ins')+text(110,127,'Insulin receptor',12)+transporter(224,91);
+  d+=transporter(269,active?91:148,active&&animate?'arrival':'')+transporter(305,active?91:148,active&&animate?'arrival':'');
+  d+=text(265,183,'Glucose transporters',12);
+  if(step===2) d+=arrow(130,108,211,143);
+  if(step===3) d+=arrow(269,54,269,127)+text(310,59,'Glucose in',12);
+ }
+ if(key==='adrenaline') {
+  d+=receptor(143,83,step>0)+messenger(step===0?104:143,step===0?45:61,'Adr')+text(143,129,'Beta₂ adrenergic receptor',12);
+  if(active) d+=arrow(169,106,227,141)+text(301,148,'Second messenger increases',12);
+  if(step===3) d+=text(230,184,'Airway smooth muscle relaxes',14);
+ }
+ if(key==='cortisol') {
+  d+='<ellipse cx="299" cy="155" rx="63" ry="46" fill="#e6ddf6" stroke="#7b649d" stroke-width="2"/>'+text(304,132,'Nucleus',12);
+  if(step<2) {
+   d+=receptor(158,133,step>0)+messenger(158,step===0?45:112,'Cor',step===1&&animate?'entry':'')+text(160,167,'Intracellular receptor',12);
+  } else {
+   d+=receptor(277,160,true)+messenger(277,140,'Cor')+'<path d="M302 167q9-14 18 0t18 0" fill="none" stroke="#7b649d" stroke-width="3"/>'+text(300,187,'Target genes',12);
+  }
+  if(step===3) d+=text(157,184,'Protein production changes',12);
+ }
+ return '<svg viewBox="0 0 420 220" role="img" aria-label="'+scenes[key].notes[step]+'">'+d+'</svg>';
+}
+function draw() {
+ const keys=mode==='acetylcholine'?['nicotinic','muscarinic']:mode==='heart'?['heartAcetylcholine','heartAdrenaline']:[mode];
+ get('panels').innerHTML=keys.map(key=>{
+  const scene=scenes[key];
+  return '<section class="card"><h2>'+scene.title+'</h2><p class="context">'+scene.chemistry+'</p><p><strong>'+scene.type+'</strong></p>'+diagram(key)+'<p class="caption">'+scene.notes[step]+'</p></section>';
+ }).join('');
+ get('stage').textContent=(step+1)+' of '+stages.length+' · '+stages[step];
+ get('next').disabled=step===stages.length-1;
+ get('context').textContent=context[mode];
+ document.querySelectorAll('[data-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mode===mode)));
+}
+get('next').onclick=()=>{if(step<stages.length-1){step++;animate=true;draw();}};
+get('restart').onclick=()=>{step=0;animate=false;draw();};
+document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{mode=button.dataset.mode;step=0;animate=false;draw();});
+draw();
+</script>
+</body>
+</html>
