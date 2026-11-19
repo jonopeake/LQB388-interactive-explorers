@@ -1,0 +1,118 @@
+<!doctype html><html lang="en-AU"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Follow the signal</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eaf2f7;color:#17344a;font:16px/1.5 system-ui,sans-serif}main{max-width:980px;margin:12px auto;background:white;border:1px solid #ccdce5;border-radius:16px;padding:clamp(14px,3vw,28px)}h1,h2,p{margin:0 0 10px}h1{font-size:clamp(1.6rem,4vw,2.2rem)}h2{font-size:1.12rem}.row{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}button{background:#fff;border:1px solid #7895a7;border-radius:8px;padding:7px 12px;color:inherit;font:inherit;cursor:pointer}button[aria-pressed=true],#play{background:#14596f;color:white}button:disabled{opacity:.5;cursor:default}:focus-visible{outline:3px solid #975300;outline-offset:2px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px}.card{background:#f1f7fa;border:1px solid #cfdee6;padding:14px;border-radius:12px}.card p:last-child{margin-bottom:0}svg{display:block;width:100%;max-height:245px;background:white;border-radius:8px}svg text{font-family:system-ui,sans-serif;fill:#17344a}dl{margin:10px 0}dt{font-weight:700}dd{margin:0 0 5px}.caption{background:white;border-left:4px solid #14596f;padding:8px 10px;min-height:64px}.legend{font-size:.9rem}.blue{color:#175b9b}.gold{color:#874900}.purple{color:#723a91}.green{color:#207653}.traveller{animation:travel 2.8s ease-in-out both}@keyframes travel{from{offset-distance:0%}to{offset-distance:100%}}@media(prefers-reduced-motion:reduce){.traveller{animation:none;offset-distance:100%}}@media(max-width:540px){main{margin:4px}}
+</style>
+<main>
+<h1>Follow the signal</h1>
+<p>Choose a route. Follow the signal from its source to its target and see what crosses the space between cells.</p>
+<nav id="modes" class="row" aria-label="Signalling routes"></nav>
+<p class="legend"><strong class="blue">Blue</strong> electrical signal along a neuron · <strong class="gold">Amber</strong> chemical messenger · <strong class="purple">Purple</strong> ions through a gap junction · <strong class="green">Green outline</strong> responding cell</p>
+<div id="scenes" class="grid"></div>
+<div class="row" aria-label="Playback controls"><button id="play">Play</button><button id="next">Next step</button><button id="reset">Restart</button></div>
+<p id="comparison" hidden><strong>Compare the distances.</strong> In synaptic signalling, the electrical signal travels along the axon and the neurotransmitter crosses only the narrow cleft. In endocrine signalling, the hormone itself travels through blood to distant cells.</p>
+<p id="integration" hidden><strong>Links to later weeks.</strong> In neurophysiology, you’ll follow the sympathetic neuron to the adrenal medulla. In endocrinology, you’ll look at how hormones travel to distant targets.</p>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const blue = '#175b9b', gold = '#a65c0a', purple = '#723a91';
+const routes = {
+gap:{name:'Gap junction', source:'Heart muscle cell', route:'Channel linking the cytoplasm of neighbouring cells', target:'Adjacent heart muscle cell', frames:[
+'Two heart muscle cells are connected by a gap junction.',
+'Ions pass directly through the junction from one cell to the next.',
+'Ion flow changes the neighbouring cell’s membrane potential, helping electrical activity spread.']},
+para:{name:'Paracrine', source:'Local signalling cell', route:'Interstitial fluid', target:'Nearby cell with the appropriate receptor', frames:[
+'A cell releases a chemical messenger into the surrounding fluid.',
+'The messenger diffuses a short distance through the interstitial fluid.',
+'The messenger binds a receptor on a nearby cell and triggers a response.']},
+auto:{name:'Autocrine', source:'Signalling cell', route:'Extracellular fluid around the source cell', target:'The same cell, which has the appropriate receptor', frames:[
+'A cell releases a chemical messenger into the surrounding fluid.',
+'Some of the released messenger reaches receptors on the source cell.',
+'Binding activates receptors on the same cell that released the messenger.']},
+syn:{name:'Synaptic', source:'Neuron', route:'Electrical signal along an axon, then neurotransmitter across a cleft', target:'Receiving cell with the appropriate receptor', frames:[
+'An electrical signal starts along the neuron.',
+'The electrical signal travels along the axon to the terminal.',
+'The terminal releases neurotransmitter. It crosses the narrow cleft and activates receptors on the receiving cell.']},
+endo:{name:'Endocrine', source:'Hormone-secreting cell', route:'Bloodstream', target:'Distant cell with the appropriate receptor', frames:[
+'An endocrine cell releases a hormone into the blood.',
+'The hormone travels in the bloodstream and can reach many tissues.',
+'At a distant tissue, the cell with the matching receptor responds. A cell without that receptor does not respond directly.']},
+adrenal:{name:'Adrenal medulla', source:'Sympathetic neuron, then adrenal medullary cell', route:'Synaptic cleft, then bloodstream', target:'Adrenal medullary cell, then distant tissues', frames:[
+'An electrical signal travels along a sympathetic neuron to its terminal.',
+'The neuron releases acetylcholine across the synapse. The adrenal medullary cell responds.',
+'The adrenal cell releases adrenaline into the blood. Distant cells with suitable receptors can respond.']}
+};
+function cell(x,y,active=false,r=37){
+ return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+(active?'#def4e8':'#e4eef7')+'" stroke="'+(active?'#207653':'#7893a7')+'" stroke-width="'+(active?4:2)+'"/>';
+}
+function label(x,y,t){return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-size="14">'+t+'</text>';}
+function receptor(x,y){return '<path d="M'+(x-6)+' '+(y-7)+'v14h12v-14" fill="none" stroke="#207653" stroke-width="3"/>';}
+function segment(path,colour,active){
+ return '<path d="'+path+'" fill="none" stroke="'+colour+'" stroke-width="2" stroke-dasharray="5 5"/>'+
+ (active?'<circle class="traveller" r="6" fill="'+colour+'" style="offset-path:path(\''+path+'\')"/>':'');
+}
+function scene(key,s){
+ if(key==='gap') return cell(139,92,false,48)+cell(271,92,s===2,48)+
+ '<rect x="181" y="83" width="48" height="18" rx="5" fill="#f0e0fa" stroke="#723a91"/>'+
+ segment('M151 92 H261',purple,s>=1)+label(205,157,'Gap junction')+label(139,30,'Source cell')+label(271,30,'Neighbour');
+ if(key==='para') return cell(87,93)+cell(308,93,s===2)+
+ receptor(272,94)+segment('M126 93 C170 63 209 115 271 93',gold,s>=1)+label(87,153,'Source cell')+label(308,153,'Nearby cell');
+ if(key==='auto') return cell(205,100,s===2,42)+receptor(239,76)+
+ segment('M168 80 C122 17 240 9 239 76',gold,s>=1)+label(205,161,'Source and target');
+ if(key==='syn'||key==='adrenal'){
+  const target=key==='adrenal'?'Adrenal cell':'Receiving cell';
+  const body=cell(58,83,false,27)+
+   '<path d="M82 83H244" stroke="#bccfdf" stroke-width="15" stroke-linecap="round"/>'+cell(254,83,false,15)+cell(326,83,s>=2||(key==='adrenal'&&s===1),37)+
+   receptor(288,83)+segment('M84 83 H248',blue,key==='adrenal'?s===0:s===1)+
+   segment('M265 83 H289',gold,key==='adrenal'?s===1:s===2)+
+   label(159,53,'Axon')+label(278,128,'Cleft')+label(326,141,target);
+  return body+(key==='adrenal'?'<rect x="71" y="166" width="313" height="22" rx="11" fill="#f5dfe2"/>'+
+   cell(52,177,s===2,17)+receptor(69,171)+segment('M326 119 V177 H69',gold,s===2)+label(202,207,'Bloodstream'):'');
+ }
+ return cell(63,61,false,26)+'<rect x="30" y="91" width="355" height="27" rx="13" fill="#f5dfe2"/>'+
+  cell(300,55,s===2,25)+cell(359,55,false,22)+receptor(300,80)+
+  segment('M63 83 V104 H300 V81',gold,s>=1)+label(65,26,'Source cell')+label(330,20,'Distant cells')+label(205,151,'Bloodstream');
+}
+const modes = [['gap','Gap junction'],['para','Paracrine'],['auto','Autocrine'],['syn','Synaptic'],['endo','Endocrine'],['compare','Compare synaptic and endocrine'],['adrenal','Adrenal medulla']];
+let mode='gap', step=0, timer;
+for(const [key,title] of modes){
+ const button=document.createElement('button');
+ button.type='button';button.textContent=title;button.dataset.mode=key;
+ button.onclick=()=>{stop();mode=key;step=0;draw();};
+ get('modes').append(button);
+}
+function draw(){
+ const selected=mode==='compare'?['syn','endo']:[mode];
+ for(const button of get('modes').children) button.setAttribute('aria-pressed',button.dataset.mode===mode);
+ get('scenes').innerHTML=selected.map(key=>{
+  const route=routes[key];
+  return '<article class="card"><h2>'+route.name+'</h2><svg viewBox="0 0 410 '+(key==='adrenal'?219:175)+'" role="img" aria-label="'+route.frames[step]+'">'+scene(key,step)+'</svg>'+
+   '<dl><dt>Source</dt><dd>'+route.source+'</dd><dt>Route</dt><dd>'+route.route+'</dd><dt>Target</dt><dd>'+route.target+'</dd></dl>'+
+   '<p class="caption" role="status">'+(step+1)+' of 3 · '+route.frames[step]+'</p></article>';
+ }).join('');
+ get('next').disabled=step===2;
+ get('comparison').hidden=mode!=='compare';
+ get('integration').hidden=mode!=='adrenal';
+ get('play').textContent=timer?'Pause':step===2?'Replay':'Play';
+}
+function stop(){
+ clearTimeout(timer);timer=undefined;
+ get('scenes').querySelectorAll('.traveller').forEach(dot=>{dot.classList.remove('traveller');dot.style.offsetDistance='100%';});
+ get('play').textContent=step===2?'Replay':'Play';
+}
+function queue(){
+ timer=setTimeout(()=>{
+  timer=undefined;
+  if(step<2){step++;queue();}
+  draw();
+ },6500);
+}
+get('play').onclick=()=>{
+ if(timer){stop();return;}
+ if(step===2)step=0;
+ queue();draw();
+};
+get('next').onclick=()=>{stop();if(step<2)step++;draw();};
+get('reset').onclick=()=>{stop();step=0;draw();};
+draw();
+</script></html>
