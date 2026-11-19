@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From binding to response</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eaf2f7;color:#17344a;font:16px/1.55 system-ui,sans-serif}main{max-width:1000px;margin:12px auto;padding:clamp(14px,3vw,28px);background:#fff;border:1px solid #ccdce5;border-radius:16px}h1,h2,h3,p{margin:0 0 10px}h1{font-size:clamp(1.6rem,4vw,2.2rem);line-height:1.2}h2{font-size:1.23rem}h3{font-size:1.05rem}.row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}button{font:inherit;color:inherit;background:white;border:1px solid #7895a7;border-radius:8px;padding:7px 12px;cursor:pointer}button[aria-pressed=true]{background:#14596f;color:white}button:disabled{opacity:.5;cursor:default}:focus-visible{outline:3px solid #975300;outline-offset:2px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:10px}.card{min-width:0;padding:12px;background:#f1f7fa;border:1px solid #cfdee6;border-radius:10px}.card svg{display:block;width:100%;max-width:280px;margin:auto}svg text{font-family:system-ui,sans-serif;fill:#17344a}.caption{padding:10px 12px;background:#eff7fa;border-left:4px solid #14596f}.note{font-size:.92rem;color:#3f5a6c}.agonist{color:#156b58}.antagonist{color:#85480a}dl{display:grid;grid-template-columns:1fr auto;gap:3px 10px;margin:8px 0 0;font-size:.91rem}dd{margin:0;font-weight:700}meter{width:100%;accent-color:#14596f}details{margin-top:14px}summary{cursor:pointer;font-weight:700}[hidden]{display:none!important}@media(max-width:530px){main{margin:4px}}
+</style>
+<main>
+<h1>From binding to response</h1>
+<p>A messenger has reached its target. What determines whether the cell responds?</p>
+<nav class="row" aria-label="Scenes">
+<button data-mode="cells" aria-pressed="true">Which cell responds?</button>
+<button data-mode="competition" aria-pressed="false">Agonist and antagonist</button>
+<button data-mode="tissues" aria-pressed="false">Same messenger, different response</button>
+</nav>
+<h2 id="scene-title"></h2>
+<div id="conditions" hidden>
+<div class="row" role="group" aria-label="Ligands present">
+<button data-condition="alone" aria-pressed="true">Agonist alone</button>
+<button data-condition="both" aria-pressed="false">Add competitive antagonist</button>
+</div>
+<p id="reference" class="note"></p>
+</div>
+<p id="legend" class="note"><strong class="agonist">Green A</strong> agonist · <strong class="antagonist">Amber B</strong> antagonist · U-shaped symbol matching receptor</p>
+<div class="grid" id="panels"></div>
+<div class="row" aria-label="Scene steps">
+<button type="button" id="next">Next step</button><button type="button" id="restart">Restart</button>
+</div>
+<p id="caption" class="caption" role="status" aria-atomic="true"></p>
+<p id="model-note" class="note"></p>
+<details>
+<summary>Optional comparison: receptor affinity</summary>
+<p>Assume two cells have the same number of receptors, the same free agonist concentration and no competitor. Which would generally have a larger fraction of its receptors occupied at equilibrium?</p>
+<details><summary>Show explanation</summary><p>The cell with higher-affinity receptors would generally have a larger fraction occupied. Affinity describes binding. The resulting response also depends on how effectively binding activates the receptor and how the cell relays that activation.</p></details>
+</details>
+</main>
+<script>
+const get = id => document.getElementById(id);
+const scenes = {
+  cells: {
+    title:'Which cell responds?',
+    captions:[
+      'The same agonist concentration reaches all three cells. The cells differ only in the number of matching receptors.',
+      'Agonist binds to matching receptors. In this example, the same fraction is occupied in the two cells that have them.',
+      'Agonist-bound receptors are active. The cell with more active receptors shows a larger response in this model.'
+    ],
+    note:'Illustrative counts. The two cells with matching receptors have the same receptor affinity and response machinery. Here the response increases in proportion to the number of active receptors.'
+  },
+  competition: {
+    title:'Does binding activate the receptor?',
+    captions:[
+      'Each condition starts with the same number of receptors and the same free agonist concentration.',
+      'Agonist and competitive antagonist can occupy the same binding site, one molecule at a time.',
+      'Agonist-bound receptors are active. Antagonist-bound receptors are occupied but inactive.'
+    ],
+    note:'Illustrative snapshots at the same free agonist concentration. Each receptor can be empty, bound to agonist, or bound to antagonist. The cell response is shown relative to the agonist-alone example.'
+  },
+  tissues: {
+    title:'Same messenger, different response',
+    captions:[
+      'Acetylcholine reaches a skeletal muscle fibre and a heart pacemaker cell. Each cell has a different receptor subtype.',
+      'Acetylcholine activates nicotinic receptors in skeletal muscle and muscarinic receptors in the pacemaker cell.',
+      'Nicotinic channels allow net entry of positive charge, depolarising the muscle fibre. Muscarinic receptors alter channel activity indirectly, slowing pacemaker firing.'
+    ],
+    note:'In later weeks, you will revisit nicotinic receptors at the neuromuscular junction and muscarinic receptors in autonomic control of the heart.'
+  }
+};
+let mode = 'cells';
+let condition = 'alone';
+let step = 0;
+function molecule(x, y, label, colour) {
+  return '<circle cx="'+x+'" cy="'+y+'" r="9" fill="'+colour+'"/>'+
+    '<text x="'+x+'" y="'+(y+3.5)+'" text-anchor="middle" font-size="9" style="fill:white;font-weight:700">'+label+'</text>';
+}
+function diagram(count, occupied, blocked, label, active) {
+  const receptorCount = Math.max(count, 1);
+  const spacing = Math.min(32, 184 / receptorCount);
+  let drawing = '<rect width="240" height="110" rx="8" fill="#dceff7"/>'+
+    '<rect y="57" width="240" height="53" rx="7" fill="'+(active?'#dcefe5':'#fff0d9')+'"/>'+
+    '<path d="M0 57H240" stroke="#7597ab" stroke-width="2"/>';
+  for (let i=0;i<6;i++) {
+    const isBlocker = mode==='competition' && condition==='both' && i%2===1;
+    drawing += molecule(21+i*39, 17, isBlocker?'B':'A', isBlocker?'#995415':'#156b58');
+  }
+  for (let i=0;i<count;i++) {
+    const x = 120 + (i-(count-1)/2)*spacing;
+    const binding = i < occupied ? 'agonist' : i < occupied + blocked ? 'blocker' : '';
+    const outline = binding==='agonist' ? '#156b58' : '#315d79';
+    drawing += '<path d="M'+(x-9)+' 49v16h18V49" fill="none" stroke="'+outline+'" stroke-width="3"/>';
+    if(binding) drawing += molecule(x,52,binding==='agonist'?'A':'B',binding==='agonist'?'#156b58':'#995415');
+  }
+  drawing += '<text x="120" y="94" text-anchor="middle" font-size="12">'+label+'</text>';
+  return '<svg viewBox="0 0 240 110" aria-hidden="true">'+drawing+'</svg>';
+}
+function countCard(title, count, agonist, antagonist, baseline) {
+  const bound = step > 0 ? agonist : 0;
+  const blocked = step > 0 ? antagonist : 0;
+  const active = bound;
+  const shown = step===2;
+  const response = Math.round(active/baseline*100);
+  const readout = step > 0
+    ? '<dl><dt>Receptors occupied</dt><dd>'+(bound+blocked)+' / '+count+'</dd><dt>Receptors activated</dt><dd>'+active+' / '+count+'</dd><dt>Cell response</dt><dd>'+(shown?response+'%':'Next step')+'</dd></dl>'
+    : '<p class="note">Matching receptors available: '+count+'</p>';
+  const cleanReadout = count===0 && step>0 ? '<dl><dt>Receptors occupied</dt><dd>0</dd><dt>Receptors activated</dt><dd>0</dd><dt>Cell response</dt><dd>'+(shown?'0%':'Next step')+'</dd></dl>' : readout;
+  return '<article class="card"><h3>'+title+'</h3>'+diagram(count,bound,blocked,'Cell interior',shown&&active)+cleanReadout+
+    (shown?'<meter min="0" max="100" value="'+response+'" aria-label="Relative cell response"></meter>':'')+'</article>';
+}
+function tissueCard(title, receptor, result) {
+  const content = step===0 ? 'Acetylcholine reaches the cell.' : step===1 ? receptor+' activated.' : result;
+  return '<article class="card"><h3>'+title+'</h3>'+diagram(3,step>0?3:0,0,receptor,step===2)+'<p>'+content+'</p></article>';
+}
+function draw() {
+  const scene = scenes[mode];
+  document.querySelectorAll('[data-mode]').forEach(button=>button.setAttribute('aria-pressed',button.dataset.mode===mode));
+  document.querySelectorAll('[data-condition]').forEach(button=>button.setAttribute('aria-pressed',button.dataset.condition===condition));
+  get('scene-title').textContent = scene.title;
+  get('conditions').hidden = mode!=='competition';
+  get('reference').textContent = condition==='both' ? 'Reference with agonist alone: 4 occupied, 4 activated, 100% response.' : 'Step through this condition first, then add the antagonist and compare.';
+  get('legend').innerHTML = mode==='tissues' ? '<strong class="agonist">Green A</strong> acetylcholine · U-shaped symbol receptor' : '<strong class="agonist">Green A</strong> agonist · <strong class="antagonist">Amber B</strong> antagonist · U-shaped symbol matching receptor';
+  if (mode==='cells') get('panels').innerHTML = countCard('No matching receptors',0,0,0,4)+countCard('Fewer matching receptors',3,2,0,4)+countCard('More matching receptors',6,4,0,4);
+  if (mode==='competition') get('panels').innerHTML = condition==='alone' ? countCard('Agonist alone',6,4,0,4) : countCard('Agonist and competitor',6,2,3,4);
+  if (mode==='tissues') get('panels').innerHTML = tissueCard('Skeletal muscle fibre','Nicotinic receptor','The fibre depolarises.')+tissueCard('Heart pacemaker cell','Muscarinic receptor','Pacemaker firing slows.');
+  let caption = scene.captions[step];
+  if (mode==='competition' && condition==='alone' && step===1) caption = 'The agonist occupies four of the six available receptors.';
+  if (mode==='competition' && condition==='both' && step===2) caption += ' Five receptors are occupied, but only two are active. The response is weaker than with agonist alone.';
+  get('caption').textContent = (step+1)+' of 3 · '+caption;
+  get('model-note').textContent = scene.note;
+  get('next').disabled = step===2;
+}
+get('next').onclick = ()=>{if(step<2)step++;draw();};
+get('restart').onclick = ()=>{step=0;draw();};
+document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{mode=button.dataset.mode;step=0;draw();});
+document.querySelectorAll('[data-condition]').forEach(button=>button.onclick=()=>{condition=button.dataset.condition;step=0;draw();});
+draw();
+</script>
+</html>
