@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Potassium equilibrium potential explorer</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#f5f9fa;color:#173747;font:16px/1.5 system-ui,sans-serif} main{max-width:960px;margin:auto;padding:24px 18px 36px} h1{font-size:clamp(1.6rem,4vw,2.35rem);line-height:1.15;margin:0 0 18px} h2{font-size:1.2rem;margin:0 0 6px} p{margin:0 0 12px} button{font:inherit;cursor:pointer;border:1px solid #37818a;background:white;color:#17444f;border-radius:8px;padding:8px 13px} button[aria-pressed=true]{background:#135965;color:white} :focus-visible{outline:3px solid #b35722;outline-offset:3px} nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{background:white;border:1px solid #c9dce0;border-radius:14px;padding:16px}.control{margin-bottom:16px} label{font-weight:700} output{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap} .row{display:flex;justify-content:space-between;gap:12px;align-items:baseline} input{width:100%;accent-color:#08727b;margin:8px 0} .small{font-size:.88rem}.scene{position:relative;overflow:hidden;border:1px solid #b4cbd0;border-radius:10px;height:206px;background:linear-gradient(to bottom,#e2f2f8 0 44%,#9ebfc9 44% 56%,#fff1dc 56% 100%);margin-bottom:10px}.side{position:absolute;left:10px;font-size:.85rem;z-index:2}.outside{top:7px}.inside{bottom:7px}.pore{position:absolute;top:44%;height:12%;width:10%;background:#fff;border-inline:4px solid #29647a;border-radius:5px;transform:translateX(-50%)} .ion{position:absolute;width:21px;height:21px;display:grid;place-items:center;border:1px solid #3f4180;background:#edebff;color:#383466;border-radius:50%;font-size:10px;font-weight:700;transform:translate(-50%,-50%)}.arrows{display:grid;gap:12px;margin:14px 0}.track{height:13px;background:#eef3f4;border-radius:6px;margin-top:3px;position:relative}.arrow{height:100%;width:0;background:#a64e1f;position:absolute;left:0;clip-path:polygon(0 27%,calc(100% - 8px) 27%,calc(100% - 8px) 0,100% 50%,calc(100% - 8px) 100%,calc(100% - 8px) 73%,0 73%)}.arrow.electric{background:#146a8b}.arrow.in{transform:scaleX(-1)}.result{border-left:4px solid #08727b;background:#eaf6f4;padding:10px 12px;margin:15px 0 0;border-radius:3px}.result p:last-child{margin:3px 0 0}.scale{position:relative;height:96px;margin:8px 5px}.axis{position:absolute;top:44px;width:100%;border-top:2px solid #86a1a7}.marker{position:absolute;transform:translateX(-50%);white-space:nowrap;font-size:.85rem;font-weight:700}.marker::after{content:"";position:absolute;left:50%;height:14px;border-left:2px solid currentColor}.marker.vm{top:17px;color:#155b78}.vm::after{top:100%}.marker.ek{top:57px;color:#7c3b20}.ek::after{bottom:100%} details{margin-top:14px} summary{cursor:pointer;font-weight:650} details p{margin-top:8px} [hidden]{display:none!important} @media(max-width:700px){.grid{grid-template-columns:1fr}}
+.net-indicator{position:absolute;z-index:3;right:7px;top:50%;transform:translateY(-50%);width:clamp(33px,12%,50px);text-align:center;color:#086258;background:#f5fffc;border:2px solid #087267;border-radius:9px;font-weight:800;line-height:1;padding:7px 2px}.net-symbol{display:block;font:800 43px/1 system-ui,sans-serif}.net-label{display:block;font-size:11px;margin-top:2px}.net-indicator[data-flow="balanced"]{color:#41545b;border-color:#687d84;background:#f5f8fa}
+.result[data-flow="balanced"]{background:#d3f4e7;border-left-width:6px;outline:2px solid #087267}.result[data-flow="balanced"] strong{font-size:1.2rem}.scene[data-flow="balanced"] .net-indicator{color:#086258;background:#d3f4e7;border-color:#087267}
+.ap-card{margin-top:16px}.ap-card svg{display:block;width:100%;max-width:680px;margin:8px auto;color:#173747}.ap-card svg text{fill:currentColor;font:15px system-ui,sans-serif}.ap-caption{margin:10px 0 0}
+.ap-forces{max-width:680px;margin:12px auto 16px;display:grid;gap:8px}.ap-force-track{position:relative;height:13px;background:#eef3f4;border-radius:6px}.ap-force-track::before{content:"";position:absolute;left:50%;height:100%;border-left:1px solid #73868d}.ap-force-track .arrow{left:50%;min-width:0}.ap-force-track .arrow.in{left:auto;right:50%}.ap-force-track .arrow[hidden]{display:none}
+</style>
+<main>
+<h1>Potassium equilibrium potential</h1>
+<nav aria-label="Activities">
+<button type="button" id="find" aria-pressed="true" aria-controls="activity">Find the balance point</button>
+<button type="button" id="move" aria-pressed="false" aria-controls="activity">Move the balance point</button>
+<button type="button" id="action-potential" aria-pressed="false" aria-controls="ap-card">Action potential</button>
+</nav>
+
+<div class="grid" id="activity">
+<section class="card">
+<h2 id="task">At what voltage is there no net movement of K⁺?</h2>
+<p id="prompt">Start at −70 mV, a typical resting voltage. The slider sets and holds the membrane potential so you can see which way K⁺ moves. Find the voltage with no net movement, then go a little farther and watch the arrow reverse.</p>
+<div class="control">
+<div class="row"><label id="slider-label" for="slider">Membrane potential</label><output id="setting" for="slider"></output></div>
+<input id="slider" type="range" min="-120" max="-40" step="0.1" value="-70">
+<div id="voltage-controls">
+<button type="button" id="reset-voltage">Reset to −70 mV</button>
+</div>
+</div>
+<div class="row small"><span>Extracellular K⁺</span><strong id="external"></strong></div>
+<div class="row small"><span>Intracellular K⁺</span><strong>140 mmol/L</strong></div>
+<div class="arrows" aria-label="Driving forces">
+<div><div class="row small"><strong>Chemical driving force</strong><span>Outward →</span></div><div class="track" aria-hidden="true"><div id="chemical" class="arrow"></div></div></div>
+<div><div class="row small"><strong>Electrical driving force</strong><span>← Inward</span></div><div class="track" aria-hidden="true"><div id="electrical" class="arrow electric in"></div></div></div>
+</div>
+<div id="voltage-scale" hidden>
+<div class="small"><div class="row"><strong>Membrane potential</strong><span id="vm-value"></span></div><div class="row"><strong>Potassium equilibrium potential</strong><span id="ek-value"></span></div></div>
+<div class="scale" aria-hidden="true"><div class="axis"></div><span class="marker vm" id="vm-marker"></span><span class="marker ek" id="ek-marker"></span></div>
+<details><summary>Show the Nernst calculation</summary><p id="calculation"></p></details>
+</div>
+</section>
+<section class="card">
+<h2>K⁺ crossing open channels</h2>
+<div class="scene" id="scene" aria-hidden="true">
+<div class="side outside">Extracellular</div><div class="side inside">Intracellular</div>
+<div class="net-indicator" id="net-indicator"><span class="net-symbol" id="net-symbol"></span><span class="net-label">NET K⁺</span></div>
+</div>
+<div class="row"><span class="small">Illustrative ion movement</span><button type="button" id="motion">Pause animation</button></div>
+<div class="result" id="result" role="status" aria-atomic="true"><strong id="direction"></strong><p id="explain"></p><p id="phase-link"></p></div>
+</section>
+</div>
+<section id="ap-card" class="card ap-card" hidden>
+<h2>When does the membrane potential come closest to the potassium equilibrium potential?</h2>
+<p>Play the slowed-down trace and watch how the direction and driving force for K⁺ relate to each phase.</p>
+<svg viewBox="0 0 580 245" role="img" aria-label="Schematic action potential. The membrane voltage rises, falls, and comes closest to the potassium equilibrium potential during the after-hyperpolarisation.">
+<path d="M70 25V203H555" fill="none" stroke="#688187" />
+<path d="M70 158H555" stroke="#9cabb0" stroke-dasharray="4 5"/>
+<path d="M70 185H555" stroke="#a64e1f" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="70" y="18">Membrane potential (mV)</text>
+<text x="23" y="51">+30</text><text x="24" y="163">−70</text>
+<text x="23" y="190">−95</text><text x="553" y="179" text-anchor="end">Potassium equilibrium potential ≈ −95 mV</text>
+<text x="519" y="226">Time</text>
+<path id="ap-trace" d="M78 158 L146 158 C162 158 168 151 176 139 C188 119 186 47 206 47 C228 47 232 114 266 158 C285 183 309 174 326 171 C365 162 394 158 431 158 L545 158" fill="none" stroke="#146a8b" stroke-width="3"/>
+<circle id="ap-dot" cx="78" cy="158" r="6" fill="#135965" stroke="white" stroke-width="2"/>
+</svg>
+<section class="ap-forces" aria-label="Driving forces on potassium">
+<div>
+<div class="row small"><strong>Chemical driving force</strong><span>Outward → · constant</span></div>
+<div class="ap-force-track" aria-hidden="true"><div id="ap-chemical" class="arrow"></div></div>
+</div>
+<div>
+<div class="row small"><strong>Electrical driving force</strong><span id="ap-electrical-label">← Inward</span></div>
+<div class="ap-force-track" aria-hidden="true"><div id="ap-electrical" class="arrow electric in"></div></div>
+</div>
+</section>
+<button id="play-ap" type="button">Play action potential</button>
+<p id="ap-caption" class="ap-caption" role="status"><strong>Resting membrane potential.</strong> The membrane potential is above the potassium equilibrium potential, so K⁺ moves OUT of the neuron overall through open leak channels.</p>
+</section>
+</main>
+<script>
+'use strict';
+const get = id => document.getElementById(id);
+const slider = get('slider');
+const scene = get('scene');
+const internal = 140;
+const heldVoltage = -70;
+const balanceConcentration = internal * 10 ** (heldVoltage / 61.5);
+const equilibriumPotential = outside => 61.5 * Math.log10(outside / internal);
+const format = (value, digits = 1) => Number(value.toFixed(digits)).toString().replace('-', '−');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let paused = reducedMotion.matches;
+let activity = 'find';
+let voltage = heldVoltage;
+let outside = 5;
+let difference = 0;
+let animationTime = 0;
+let previousTime;
+let frame;
+
+const lanes = [24, 41, 58, 75];
+const ions = lanes.map((left, index) => {
+  const pore = document.createElement('div');
+  pore.className = 'pore';
+  pore.style.left = left + '%';
+  scene.append(pore);
+  return Array.from({length: 4}, (_, particle) => {
+    const ion = document.createElement('span');
+    ion.className = 'ion';
+    ion.textContent = 'K⁺';
+    ion.style.left = (left + (particle % 2 ? 2.1 : -2.1)) + '%';
+    scene.append(ion);
+    return {ion, offset: (index * 0.27 + Math.floor(particle / 2) * 0.5) % 1, outward: particle % 2 === 0};
+  });
+}).flat();
+
+function draw() {
+  // The illustration models relative crossing rates, not absolute molecular flux.
+  const bias = Math.min(0.65, Math.abs(difference) / 65);
+  for (const {ion, offset, outward} of ions) {
+    const favoured = outward === (difference > 0);
+    const wait = favoured ? 0 : bias;
+    const phase = (animationTime / 2400 + offset) % 1;
+    const progress = Math.max(0, (phase - wait) / (1 - wait));
+    const crossing = outward ? 1 - progress : progress;
+    // Some crossings in the less-favoured direction are omitted each cycle.
+    const cycle = Math.floor(animationTime / 2400 + offset);
+    const visible = ((cycle * 37 + Math.round(offset * 100)) % 100) / 100 >= wait;
+    ion.style.visibility = visible ? 'visible' : 'hidden';
+    ion.style.top = (22 + crossing * 56) + '%';
+  }
+}
+
+function animate(now) {
+  if (previousTime !== undefined) animationTime += Math.min(now - previousTime, 50);
+  previousTime = now;
+  draw();
+  frame = requestAnimationFrame(animate);
+}
+
+function setMotion() {
+  cancelAnimationFrame(frame);
+  previousTime = undefined;
+  get('motion').textContent = paused ? 'Play animation' : 'Pause animation';
+  if (!paused && activity !== 'ap') frame = requestAnimationFrame(animate);
+}
+
+function update() {
+  if (activity === 'find') {
+    const requestedVoltage = Number(slider.value);
+    const balanceVoltage = Number(equilibriumPotential(4).toFixed(1));
+    voltage = Math.abs(requestedVoltage - balanceVoltage) <= 2
+      ? balanceVoltage
+      : requestedVoltage;
+  } else {
+    const requestedConcentration = Number(slider.value);
+    outside = Math.abs(requestedConcentration - balanceConcentration) <= 0.5
+      ? balanceConcentration
+      : requestedConcentration;
+  }
+  const concentration = activity === 'find' ? 4 : outside;
+  const ek = equilibriumPotential(concentration);
+  const vm = activity === 'find' ? voltage : heldVoltage;
+  const balanced = Math.abs(vm - ek) <= 0.05;
+  difference = balanced ? 0 : vm - ek;
+  get('setting').textContent = activity === 'find' ? format(vm) + ' mV' : format(outside, 2) + ' mmol/L';
+  slider.setAttribute('aria-valuetext', get('setting').textContent);
+  get('external').textContent = format(concentration, 2) + ' mmol/L';
+  get('chemical').style.width = Math.abs(ek) / 1.2 + '%';
+  get('electrical').style.width = Math.abs(vm) / 1.2 + '%';
+  const flow = balanced ? 'balanced' : difference > 0 ? 'out' : 'in';
+  get('net-indicator').dataset.flow = flow;
+  get('result').dataset.flow = flow;
+  scene.dataset.flow = flow;
+  get('net-symbol').textContent = {balanced: '0', out: '↑', in: '↓'}[flow];
+  get('direction').textContent = {
+    balanced: 'No net K⁺ movement',
+    out: 'Net K⁺ movement OUT of the neuron',
+    in: 'Net K⁺ movement INTO the neuron'
+  }[flow];
+  get('explain').textContent = balanced
+    ? 'The membrane potential matches the potassium equilibrium potential (about ' + format(ek) + ' mV). K⁺ crosses in both directions at equal rates.'
+    : difference > 0
+      ? 'The outward chemical driving force is stronger than the inward electrical driving force.'
+      : 'The inward electrical driving force is stronger than the outward chemical driving force.';
+  get('phase-link').textContent = {
+    out: 'During repolarisation, outward K⁺ current through open voltage-gated K⁺ channels helps bring the voltage down. If those channels stay open after the spike, outward current can also contribute to the after-hyperpolarisation.',
+    balanced: 'The net driving force on K⁺ weakens as the voltage approaches the potassium equilibrium potential during after-hyperpolarisation. At equilibrium, net potassium current is zero even with channels open.',
+    in: 'If the membrane potential falls below the potassium equilibrium potential, K⁺ moves inward and tends to bring the voltage back towards equilibrium. This illustrates a reversal of K⁺ current beyond its equilibrium potential.'
+  }[flow];
+  if (activity === 'move') {
+    const place = (id, value) => {
+      get(id).style.left = ((value + 125) / 85 * 100) + '%';
+      get(id).textContent = format(value) + ' mV';
+    };
+    place('vm-marker', vm);
+    get('vm-value').textContent = format(vm) + ' mV';
+    place('ek-marker', ek);
+    get('ek-value').textContent = format(ek) + ' mV';
+    get('calculation').textContent = 'Potassium equilibrium potential = 61.5 × log₁₀(' + format(outside, 2) + ' ÷ 140) ≈ ' + format(ek) + ' mV.';
+  }
+  draw();
+}
+
+function select(next) {
+  if (activity === 'ap' && next !== 'ap') {
+    cancelAnimationFrame(apFrame);
+    apFrame = undefined;
+    apElapsed = 0;
+    drawActionPotential(78, apPhases[0]);
+    get('play-ap').textContent = reducedMotion.matches ? 'Show closest approach' : 'Play action potential';
+  }
+  activity = next;
+  const showTrace = next === 'ap';
+  get('activity').hidden = showTrace;
+  get('ap-card').hidden = !showTrace;
+  get('action-potential').setAttribute('aria-pressed', showTrace);
+  get('find').setAttribute('aria-pressed', next === 'find');
+  get('move').setAttribute('aria-pressed', next === 'move');
+  setMotion();
+  if (showTrace) return;
+  const find = next === 'find';
+  get('task').textContent = find ? 'At what voltage is there no net movement of K⁺?' : 'Change extracellular potassium';
+  get('prompt').textContent = find
+    ? 'Start at −70 mV, a typical resting voltage. The slider sets and holds the membrane potential so you can see which way K⁺ moves. Find the voltage with no net movement, then go a little farther and watch the arrow reverse.'
+    : 'The membrane potential is held at −70 mV for this activity. Increase extracellular K⁺ and watch how the potassium equilibrium potential and net movement change.';
+  get('slider-label').textContent = find ? 'Membrane potential' : 'Extracellular K⁺ concentration';
+  slider.min = find ? -120 : 2;
+  slider.max = find ? -40 : 25;
+  slider.value = find ? voltage : outside;
+  get('voltage-scale').hidden = find;
+  get('voltage-controls').hidden = !find;
+  update();
+}
+get('find').onclick = () => select('find');
+get('move').onclick = () => select('move');
+get('action-potential').onclick = () => select('ap');
+slider.oninput = update;
+get('reset-voltage').onclick = () => {
+  slider.value = heldVoltage;
+  update();
+};
+get('motion').onclick = () => { paused = !paused; setMotion(); };
+const apTrace = get('ap-trace');
+const apDot = get('ap-dot');
+const apPhases = [
+  [146, 'Resting membrane potential', 'The membrane potential is above the potassium equilibrium potential, so K⁺ moves OUT of the neuron overall through open leak channels. Other currents help keep the membrane potential steady.'],
+  [206, 'Depolarisation', 'Na⁺ entry drives the membrane potential up. K⁺ moves OUT of the neuron overall through open channels. The outward driving force on K⁺ grows as the membrane potential moves farther from the potassium equilibrium potential.'],
+  [266, 'Repolarisation', 'K⁺ moves OUT of the neuron overall through open voltage-gated K⁺ channels. Loss of positive charge helps bring the membrane potential back down.'],
+  [326, 'After-hyperpolarisation', 'K⁺ moves OUT of the neuron overall through channels that remain open. At the bottom of the dip, the membrane potential is closest to the potassium equilibrium potential and the outward driving force is weakest.'],
+  [545, 'Return to rest', 'Voltage-gated K⁺ channels close, reducing outward current through them. K⁺ moves OUT of the neuron overall through open leak channels because the membrane potential remains above the potassium equilibrium potential.']
+];
+const phaseDuration = 10000;
+const apDuration = apPhases.length * phaseDuration;
+let apFrame;
+let apElapsed = 0;
+let apPhase;
+
+const apElectrical = get('ap-electrical');
+const apElectricalLabel = get('ap-electrical-label');
+const apChemical = get('ap-chemical');
+const apEquilibrium = equilibriumPotential(4);
+apChemical.style.width = (Math.abs(apEquilibrium) / 2.2) + '%';
+
+function updateActionPotentialForces(voltage) {
+  const direction = Math.abs(voltage) < 0.5 ? 'Zero at 0 mV' : voltage < 0 ? '← Inward' : 'Outward →';
+  if (apElectricalLabel.textContent !== direction) apElectricalLabel.textContent = direction;
+  apElectrical.hidden = Math.abs(voltage) < 0.5;
+  apElectrical.classList.toggle('in', voltage < 0);
+  apElectrical.style.width = (Math.abs(voltage) / 2.2) + '%';
+}
+
+function drawActionPotential(x, phase) {
+  // The trace moves left to right, so locate the point at this time on the curve.
+  let low = 0;
+  let high = apTrace.getTotalLength();
+  for (let index = 0; index < 14; index++) {
+    const middle = (low + high) / 2;
+    if (apTrace.getPointAtLength(middle).x < x) low = middle;
+    else high = middle;
+  }
+  const point = apTrace.getPointAtLength((low + high) / 2);
+  apDot.setAttribute('cx', point.x);
+  apDot.setAttribute('cy', point.y);
+  // The vertical axis places −70 mV at y=158 and +30 mV at y=47.
+  updateActionPotentialForces(-70 + (158 - point.y) * 100 / 111);
+  if (phase !== apPhase) {
+    apPhase = phase;
+    const phaseName = document.createElement('strong');
+    phaseName.textContent = phase[1] + '.';
+    get('ap-caption').replaceChildren(phaseName, ' ' + phase[2]);
+  }
+}
+
+const apButton = get('play-ap');
+apButton.onclick = () => {
+  if (reducedMotion.matches) {
+    drawActionPotential(296, apPhases[3]);
+    get('play-ap').textContent = 'Show closest approach';
+    return;
+  }
+  if (apFrame !== undefined) {
+    cancelAnimationFrame(apFrame);
+    apFrame = undefined;
+    apButton.textContent = 'Resume action potential';
+    return;
+  }
+  if (apElapsed >= apDuration) apElapsed = 0;
+  const start = performance.now() - apElapsed;
+  apButton.textContent = 'Pause action potential';
+  const tick = now => {
+    const elapsed = Math.min(apDuration, Math.max(0, now - start));
+    apElapsed = elapsed;
+    const phaseIndex = Math.min(apPhases.length - 1, Math.floor(elapsed / phaseDuration));
+    const phase = apPhases[phaseIndex];
+    const fromX = phaseIndex === 0 ? 78 : apPhases[phaseIndex - 1][0];
+    const progress = Math.min(1, (elapsed - phaseIndex * phaseDuration) / phaseDuration);
+    drawActionPotential(fromX + progress * (phase[0] - fromX), phase);
+    if (elapsed < apDuration) {
+      apFrame = requestAnimationFrame(tick);
+    } else {
+      apFrame = undefined;
+      apButton.textContent = 'Replay action potential';
+    }
+  };
+  apFrame = requestAnimationFrame(tick);
+};
+if (reducedMotion.matches) get('play-ap').textContent = 'Show closest approach';
+
+updateActionPotentialForces(heldVoltage);
+select('find');
+</script>
+</html>
