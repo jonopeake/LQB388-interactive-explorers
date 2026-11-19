@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en-AU">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What changes a cell’s response?</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef5f8;color:#18364a;font:16px/1.5 system-ui,sans-serif}main{max-width:900px;margin:10px auto;padding:clamp(14px,3vw,26px);background:white;border:1px solid #cbdce5;border-radius:14px}h1{margin:0;font-size:clamp(1.5rem,4vw,2rem)}p{margin:8px 0}.grid{display:grid;grid-template-columns:1fr 1.2fr;gap:18px}.control{margin:12px 0}label{font-weight:700;display:block}input{width:100%;accent-color:#146582}small{display:block;color:#415d6e}svg{display:block;width:100%;border-radius:12px}nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}button[aria-pressed=true]{background:#14596f;color:white}button{font:inherit;padding:6px 12px;background:white;color:inherit;border:1px solid #7895a7;border-radius:7px;cursor:pointer}:focus-visible{outline:3px solid #975300;outline-offset:2px}.result{padding:8px 12px;background:#edf8f3;border-left:4px solid #167055} @media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><main>
+<h1>What changes a cell’s response?</h1>
+<p>Choose one factor, then move its slider to see what changes in the cell.</p>
+<nav aria-label="Factor to explore">
+<button type="button" data-mode="clearance" aria-pressed="true">Messenger clearance</button>
+<button type="button" data-mode="sensitivity" aria-pressed="false">Receptor sensitisation</button>
+<button type="button" data-mode="number" aria-pressed="false">Surface receptor number</button>
+</nav>
+<div class="grid">
+<section aria-label="Change the model">
+<div class="control" id="clearance-control"><label for="clearance">Messenger clearance · <output id="clear-label">Usual</output></label><input id="clearance" type="range" min="0" max="2" value="1"></div>
+<div class="control" id="sensitivity-control" hidden><label for="sensitivity">Receptor sensitisation · <output id="sense-label">Usual</output></label><input id="sensitivity" type="range" min="0" max="2" value="1"></div>
+<div class="control" id="number-control" hidden><label for="number">Surface receptors · <output id="number-label">6</output></label><input id="number" type="range" min="3" max="9" value="6" step="3"></div>
+<button id="replay" type="button">Replay dose</button>
+<button id="reset" type="button">Reset slider</button>
+</section>
+<section aria-label="Cell response">
+<svg viewBox="0 0 390 215" role="img" aria-labelledby="diagram-title">
+<title id="diagram-title">Messenger outside the cell and receptors on the membrane</title>
+<rect width="390" height="215" fill="#e2f0f7"/><rect y="116" width="390" height="99" fill="#fff2dd"/>
+<rect id="glow" y="116" width="390" height="99" fill="#249879"/>
+<path d="M0 116H390" stroke="#5d879d" stroke-width="5"/>
+<g font-family="system-ui,sans-serif" fill="#18364a" font-size="14"><text x="13" y="24">Outside the cell</text><text x="13" y="195">Inside the cell</text></g>
+<g id="dots" fill="#9c4f08"></g><g id="receptors" fill="none" stroke="#176d59" stroke-width="4"></g><g id="bound" fill="#9c4f08"></g>
+</svg>
+<small>Amber dots in the fluid represent free messenger. Dots sitting in green receptor outlines are bound. Darker shading inside the cell means a stronger response.</small>
+
+</section></div>
+<p class="result" id="result" role="status"></p>
+
+</main>
+<script>
+const get = id => document.getElementById(id);
+const controls = ['clearance','sensitivity','number'].map(get);
+const clearanceNames = ['Slower','Usual','Faster'];
+const sensitivityNames = ['Desensitised','Usual','Sensitised'];
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let frame;
+let mode = 'clearance';
+const modes = document.querySelectorAll('[data-mode]');
+function selectMode(key) {
+ mode = key;
+ for (const button of modes) button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
+ for (const control of controls) get(control.id + '-control').hidden = control.id !== mode;
+ showDose();
+}
+function showDose() {
+ cancelAnimationFrame(frame);
+ const [clearance, sensitivity, number] = controls.map(control => Number(control.id === mode ? control.value : control.defaultValue));
+ const peak = number / 6 * [.5,1,1.5][sensitivity];
+ const halfLife = [3.6,1.5,.5][clearance];
+ get('clear-label').textContent = clearanceNames[clearance];
+ get('sense-label').textContent = sensitivityNames[sensitivity];
+ get('number-label').textContent = number;
+ controls[0].setAttribute('aria-valuetext', clearanceNames[clearance]);
+ controls[1].setAttribute('aria-valuetext', sensitivityNames[sensitivity]);
+ get('receptors').innerHTML = Array.from({length:number},(_,i) => {
+  const x = 195 + (i-(number-1)/2)*36;
+  return '<path d="M'+(x-7)+' 106v11q7 9 14 0v-11"'+(sensitivity===0?' stroke-dasharray="3 2"':'')+'/>';
+ }).join('');
+ const takeaways = {
+  clearance: ['Slower clearance keeps the messenger available for longer.', '',
+   'Faster clearance removes the messenger sooner, so the response is shorter.'],
+  sensitivity: ['The response is weaker because each bound receptor signals less strongly.', '',
+   'The response is stronger because each bound receptor signals more strongly.'],
+  number: ['The response is weaker because fewer receptors are available to bind the messenger.', '',
+   'The response is stronger because more receptors are available to bind the messenger.']
+ };
+ const takeaway = takeaways[mode][mode === 'clearance' ? clearance : mode === 'sensitivity' ? sensitivity : (number - 3) / 3];
+ get('result').hidden = !takeaway;
+ get('result').textContent = takeaway;
+ const start = performance.now();
+ function paint(seconds) {
+  const bindingDelay = Math.max(0, seconds - .55);
+  const fraction = mode === 'clearance' ? Math.pow(.5, bindingDelay / halfLife) : 1;
+  const binding = Math.min(1, seconds / .55);
+  const response = peak * fraction * binding;
+  const boundCount = Math.round(number * fraction * binding);
+  get('bound').innerHTML = Array.from({length:boundCount},(_,i) => {
+   const x = 195 + (i-(number-1)/2)*36;
+   const y = 87 + 25 * binding;
+   return '<circle cx="'+x+'" cy="'+y+'" r="5"/>';
+  }).join('');
+  get('dots').innerHTML = Array.from({length:Math.round(18*fraction)},(_,i) => {
+   const slot = i*7%18;
+   return '<circle cx="'+(42+slot%9*38)+'" cy="'+(49+Math.floor(slot/9)*28)+'" r="5"/>';
+  }).join('');
+  get('glow').setAttribute('opacity', String(Math.min(1, (response / 1.5) ** 2)));
+ }
+ if (reducedMotion.matches) { paint(.55); return; }
+ function tick(now) {
+  const elapsed = Math.max(0,(now-start)/1000);
+  paint(elapsed);
+  if (elapsed < (mode === 'clearance' ? 9 : .55)) frame = requestAnimationFrame(tick);
+ }
+ paint(0);
+ frame = requestAnimationFrame(tick);
+}
+for (const button of modes) button.addEventListener('click', () => selectMode(button.dataset.mode));
+for (const control of controls) control.addEventListener('input',showDose);
+get('replay').onclick = showDose;
+get('reset').onclick = () => {
+ const control = get(mode);
+ control.value = control.defaultValue;
+ showDose();
+};
+showDose();
+</script>
+</body></html>
