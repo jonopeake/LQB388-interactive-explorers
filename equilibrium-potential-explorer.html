@@ -76,6 +76,9 @@
 </div>
 </section>
 <button id="play-ap" type="button">Play action potential</button>
+<button id="sync-ap" type="button" hidden>Play with narration</button>
+<button id="listen-ap" type="button" hidden>Listen</button>
+<p id="audio-status" class="small" role="status" hidden></p>
 <p id="ap-caption" class="ap-caption" role="status"><strong>Resting membrane potential.</strong> The membrane potential is above the potassium equilibrium potential, so K⁺ moves OUT of the neuron overall through open leak channels.</p>
 </section>
 </main>
@@ -205,6 +208,9 @@ function update() {
 
 function select(next) {
   if (activity === 'ap' && next !== 'ap') {
+    stopSyncedPlayback();
+    stopNarration();
+    get('audio-status').hidden = true;
     cancelAnimationFrame(apFrame);
     apFrame = undefined;
     apElapsed = 0;
@@ -295,6 +301,8 @@ function drawActionPotential(x, phase) {
 
 const apButton = get('play-ap');
 apButton.onclick = () => {
+  stopSyncedPlayback();
+  stopNarration();
   if (reducedMotion.matches) {
     drawActionPotential(296, apPhases[3]);
     get('play-ap').textContent = 'Show closest approach';
@@ -327,6 +335,142 @@ apButton.onclick = () => {
   apFrame = requestAnimationFrame(tick);
 };
 if (reducedMotion.matches) get('play-ap').textContent = 'Show closest approach';
+
+const listenButton = get('listen-ap');
+const audioStatus = get('audio-status');
+const canNarrate = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+let narration;
+
+function stopNarration() {
+  if (!narration) return;
+  narration = undefined;
+  window.speechSynthesis.cancel();
+  if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+  listenButton.textContent = 'Listen';
+}
+
+if (canNarrate) {
+  listenButton.hidden = false;
+  listenButton.onclick = () => {
+    if (narration) {
+      stopNarration();
+      return;
+    }
+    stopSyncedPlayback();
+    if (apFrame !== undefined) {
+      cancelAnimationFrame(apFrame);
+      apFrame = undefined;
+      apButton.textContent = 'Resume action potential';
+    }
+    audioStatus.hidden = true;
+    const phase = apPhase ?? apPhases[0];
+    listenButton.textContent = 'Stop narration';
+    speakPhase(phase);
+  };
+}
+
+
+function speakPhase(phase) {
+  const spokenCaption = phase[2]
+    .replaceAll('K⁺', 'potassium')
+    .replaceAll('Na⁺', 'sodium')
+    .replaceAll('OUT', 'out');
+  const speech = new window.SpeechSynthesisUtterance(phase[1] + '. ' + spokenCaption);
+  speech.lang = 'en-AU';
+  speech.rate = 0.9;
+  narration = speech;
+  speech.onend = speech.onerror = event => {
+    if (narration !== speech) return;
+    narration = undefined;
+    listenButton.textContent = 'Listen';
+    if (event.type === 'error') {
+      audioStatus.textContent = 'Narration is unavailable in this browser session. You can follow the written captions.';
+      audioStatus.hidden = false;
+    }
+  };
+  window.speechSynthesis.speak(speech);
+}
+
+const syncButton = get('sync-ap');
+let syncFrame;
+let syncPhaseIndex = 0;
+let syncElapsed = 0;
+let syncActive = false;
+
+function stopSyncedPlayback() {
+  if (!syncActive) return;
+  cancelAnimationFrame(syncFrame);
+  syncFrame = undefined;
+  syncActive = false;
+  listenButton.disabled = false;
+  stopNarration();
+  syncButton.textContent = 'Play with narration';
+}
+
+function renderNarratedPhase() {
+  const phase = apPhases[syncPhaseIndex];
+  const fromX = syncPhaseIndex === 0 ? 78 : apPhases[syncPhaseIndex - 1][0];
+  const progress = reducedMotion.matches ? 1 : syncElapsed / phaseDuration;
+  const x = reducedMotion.matches && syncPhaseIndex === 3 ? 296 : fromX + progress * (phase[0] - fromX);
+  drawActionPotential(x, phase);
+}
+
+function runNarratedPhase() {
+  let previousTime = performance.now();
+  syncButton.textContent = 'Pause narrated playback';
+  const tick = now => {
+    syncElapsed = Math.min(phaseDuration, syncElapsed + Math.max(0, now - previousTime));
+    previousTime = now;
+    renderNarratedPhase();
+    if (syncElapsed >= phaseDuration && !narration) {
+      if (syncPhaseIndex === apPhases.length - 1) {
+        syncActive = false;
+        listenButton.disabled = false;
+        syncFrame = undefined;
+        syncButton.textContent = 'Replay with narration';
+        return;
+      }
+      syncPhaseIndex++;
+      syncElapsed = 0;
+      renderNarratedPhase();
+      if (audioStatus.hidden) speakPhase(apPhases[syncPhaseIndex]);
+    }
+    syncFrame = requestAnimationFrame(tick);
+  };
+  syncFrame = requestAnimationFrame(tick);
+}
+
+if (canNarrate) {
+  syncButton.hidden = false;
+  syncButton.onclick = () => {
+    if (syncActive) {
+      if (syncFrame !== undefined) {
+        cancelAnimationFrame(syncFrame);
+        syncFrame = undefined;
+        if (narration) window.speechSynthesis.pause();
+        syncButton.textContent = 'Resume narrated playback';
+      } else {
+        if (narration) window.speechSynthesis.resume();
+        runNarratedPhase();
+      }
+      return;
+    }
+
+    stopNarration();
+    cancelAnimationFrame(apFrame);
+    apFrame = undefined;
+    apElapsed = 0;
+    apButton.textContent = reducedMotion.matches ? 'Show closest approach' : 'Play action potential';
+    audioStatus.hidden = true;
+    syncActive = true;
+    listenButton.disabled = true;
+    syncPhaseIndex = 0;
+    syncElapsed = 0;
+    renderNarratedPhase();
+    speakPhase(apPhases[0]);
+    runNarratedPhase();
+  };
+}
 
 updateActionPotentialForces(heldVoltage);
 select('find');
