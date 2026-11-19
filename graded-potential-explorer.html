@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Will this input trigger an action potential?</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f8f7;color:#17363e;font:16px/1.5 system-ui,sans-serif}main{max-width:960px;margin:auto;padding:22px 16px}h1{font-size:clamp(1.6rem,4vw,2.25rem);line-height:1.15;margin:0 0 12px}h2{font-size:1.08rem;margin:0 0 5px}p{margin:0 0 12px}.card{background:white;border:1px solid #c8ddda;border-radius:13px;padding:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}.row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}label,output{font-weight:650}input{width:100%;accent-color:#136d67;margin:7px 0}.small{font-size:.9rem}svg{display:block;width:100%;height:auto}svg text{font:13px system-ui,sans-serif;fill:#27444e}.result{background:#e3f4ef;border-left:4px solid #168076}.result p{margin:4px 0 0}details{margin-top:13px}summary{cursor:pointer;font-weight:650}li+li{margin-top:6px}:focus-visible{outline:3px solid #ad4b1d;outline-offset:3px}@media(max-width:650px){.grid{grid-template-columns:1fr}}
+[hidden]{display:none!important}.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.tabs button{font:inherit;color:#164b48;background:white;border:1px solid #377a75;border-radius:7px;padding:7px 12px;cursor:pointer}.tabs button[aria-pressed=true]{color:white;background:#14635e}
+</style>
+<main>
+<nav class="tabs" aria-label="Explorer activities">
+<button type="button" id="show-trigger" aria-controls="trigger-panel" aria-pressed="true">Trigger an action potential</button>
+<button type="button" id="show-compare" aria-controls="compare-panel" aria-pressed="false">Depolarisation and hyperpolarisation</button>
+</nav>
+<div id="trigger-panel">
+<h1>Will this input trigger an action potential?</h1>
+<p>Here, an input is a signal from another neuron. It releases neurotransmitter at a synapse on the dendrite, opening ligand-gated channels and causing a local depolarisation. Different neurons can form synapses at different points along the dendrite. Use the distance slider to choose which synapse is active.</p>
+<div class="card">
+<div class="row"><label for="strength">Strength of the excitatory input</label></div>
+<input type="range" id="strength" min="1" max="6" value="4" aria-describedby="strength-help">
+<div class="row small" aria-hidden="true"><span>Weak</span><span>Strong</span></div>
+<p class="small" id="strength-help">The voltage change at the synapse is a graded potential. A stronger input makes it larger.</p>
+<div class="row"><label for="distance">Synapse distance from the axon initial segment</label></div>
+<input type="range" id="distance" min="1" max="6" value="2">
+<div class="row small" aria-hidden="true"><span>Closer</span><span>Further away</span></div>
+<svg viewBox="0 0 700 180" role="img" aria-labelledby="neuron-title neuron-desc">
+<title id="neuron-title">Neuron with six possible synapses on a dendrite</title>
+<desc id="neuron-desc">The orange dot marks the selected synapse. The orange line follows the route towards the axon initial segment.</desc>
+<g fill="none" stroke="#82aeb6" stroke-width="6" stroke-linecap="round">
+<path d="M43 84H290 M70 84L42 60L21 59 M119 84L88 54L75 40 M156 84L127 119L100 126 M207 84L184 50L157 33 M228 84L209 119L184 133"/>
+<path d="M315 61L298 33L277 26 M315 106L291 132L267 138"/>
+</g>
+<path d="M278 79 Q289 73 299 63 Q320 38 350 64 Q367 78 395 79 L395 89 Q367 90 350 103 Q321 126 299 103 Q287 92 278 89Z" fill="#bed8dc" stroke="#63919b" stroke-width="2"/>
+<circle cx="327" cy="84" r="12" fill="#89b0b8"/>
+<path d="M392 84H619 M619 84Q640 84 660 63 M619 84H673 M619 84Q641 84 659 106" fill="none" stroke="#6892a0" stroke-width="6" stroke-linecap="round"/>
+<path d="M394 84H435" stroke="#225b74" stroke-width="10" stroke-linecap="round"/>
+<g fill="#6892a0"><circle cx="660" cy="63" r="6"/><circle cx="673" cy="84" r="6"/><circle cx="659" cy="106" r="6"/></g>
+<line id="signal-path" x1="239" y1="84" x2="411" y2="84" stroke="#a34c24" stroke-width="3" stroke-dasharray="5 4"/>
+<g fill="#fff" stroke="#a34c24" stroke-width="1.5">
+<circle cx="63" cy="84" r="4"/><circle cx="107" cy="84" r="4"/><circle cx="151" cy="84" r="4"/><circle cx="195" cy="84" r="4"/><circle cx="239" cy="84" r="4"/><circle cx="283" cy="84" r="4"/>
+</g>
+<circle id="synapse" cx="239" cy="84" r="8" fill="#a34c24" stroke="#fff" stroke-width="2"/>
+<g fill="none" stroke="#778f94" stroke-width="1"><path d="M125 25L99 62 M327 132V114 M413 45V77 M522 131V90 M631 43L650 63"/></g>
+<g text-anchor="middle" font-weight="650"><text x="125" y="20">Dendrites</text><text x="327" y="149">Cell body</text><text x="413" y="38">Axon initial segment</text><text x="522" y="148">Axon</text><text x="631" y="35">Axon terminals</text></g>
+</svg>
+<p class="small">The orange dot marks the active synapse. The dashed line shows the path towards the axon initial segment. Distance is measured along this path in the model.</p>
+</div>
+<div class="grid">
+<section class="card"><h2>Graded potential at the synapse</h2><svg id="local" viewBox="0 0 400 218" role="img"></svg><div class="small" id="local-reading"></div></section>
+<section class="card"><h2>At the axon initial segment</h2><svg id="initial" viewBox="0 0 400 218" role="img"></svg><div class="small" id="initial-reading"></div></section>
+</div>
+<section class="card result" role="status" aria-atomic="true"><strong id="outcome"></strong><p id="explanation"></p></section>
+<details open><summary>Try two comparisons</summary>
+<ol>
+<li>Set the input to <strong>Strong</strong>. Move the synapse from <strong>Closer</strong> to <strong>Further away</strong>. Which trace changes?</li>
+<li>Set the synapse to <strong>Closer</strong> and start with a <strong>Weak</strong> input. Increase the strength until a spike appears. Keep increasing it and see what happens to the spike height.</li>
+</ol>
+</details>
+<p class="small">Illustrative model with one input, a fixed threshold and a fixed spike peak. Both traces use the same voltage and time scales.</p>
+</div>
+<section id="compare-panel" hidden>
+<h1>Depolarisation and hyperpolarisation</h1>
+<p>Both examples start at −70 mV. Compare the local graded potentials produced when a neurotransmitter changes which channels are open.</p>
+<div class="grid">
+<section class="card"><h2>Depolarisation</h2>
+<svg id="depolarising" viewBox="0 0 400 218" role="img"></svg>
+<p>Binding of an excitatory neurotransmitter such as glutamate to its receptor can open cation channels. At −70 mV, more positive charge enters as sodium than leaves as potassium. The membrane potential becomes <strong>less negative</strong>, producing an <strong>excitatory graded potential</strong> in this example.</p>
+</section>
+<section class="card"><h2>Hyperpolarisation</h2>
+<svg id="hyperpolarising" viewBox="0 0 400 218" role="img"></svg>
+<p>Binding of an inhibitory neurotransmitter such as GABA to certain receptors can indirectly open potassium channels. At −70 mV, potassium moves out overall, carrying positive charge with it. The membrane potential becomes <strong>more negative</strong>, producing an <strong>inhibitory graded potential</strong> in this example.</p>
+</section>
+</div>
+<p class="small">Illustrative local responses on the same voltage and time scales. As the synaptic effect wears off, the voltage returns towards rest.</p>
+</section>
+</main>
+<script>
+'use strict';
+const get = id => document.getElementById(id);
+const strength = get('strength');
+const distance = get('distance');
+const rest = -70;
+const threshold = -55;
+const spikePeak = 30;
+const x = time => 55 + time * 3.3;
+const y = voltage => 25 + (40 - voltage) * 1.4;
+const signed = number => (number > 0 ? '+' : '') + String(number).replace('-', '−');
+const graded = (time, start, amplitude) => {
+  const elapsed = time - start;
+  if (elapsed <= 0) return rest;
+  const fraction = elapsed / 15;
+  return rest + amplitude * fraction * Math.exp(1 - fraction);
+};
+
+function trace(svg, samples, showThreshold, description, closeUp = false) {
+  const plotY = closeUp ? voltage => 109 - (voltage - rest) * 7 : y;
+  const grid = (closeUp ? [-60, -70, -80] : [30, 0, -55, -70]).map(voltage => {
+    const position = plotY(voltage);
+    const thresholdLine = voltage === threshold && showThreshold;
+    return '<line x1="55" x2="387" y1="' + position + '" y2="' + position +
+      '" stroke="' + (thresholdLine ? '#a34c24' : '#dbe6e5') + '"' +
+      (thresholdLine ? ' stroke-dasharray="5 4"' : '') + '/>' +
+      '<text x="46" y="' + (position + 4) + '" text-anchor="end">' + signed(voltage) + '</text>';
+  }).join('');
+  const points = samples.map(([time, voltage]) => x(time).toFixed(2) + ',' + plotY(voltage).toFixed(2)).join(' ');
+  svg.setAttribute('aria-label', description);
+  svg.innerHTML = grid + '<path d="M55 25V193H387" fill="none" stroke="#81989b"/>' +
+    '<text x="55" y="17">Membrane potential (mV)</text>' +
+    '<text x="388" y="213" text-anchor="end">Time →</text>' +
+    (showThreshold ? '<text x="384" y="' + (y(threshold) - 5) + '" text-anchor="end">Threshold</text>' : '') +
+    '<polyline points="' + points + '" fill="none" stroke="' +
+    (showThreshold ? '#176078' : '#a34c24') + '" stroke-width="2.8" stroke-linejoin="round"/>';
+}
+
+function update() {
+  const level = Number(strength.value);
+  const separation = Number(distance.value);
+  const inputAmplitude = level * 6;
+  const initialAmplitude = inputAmplitude * Math.exp(-0.26 * (separation - 1));
+  const initialStart = 13 + separation;
+  const times = Array.from({length:201}, (_, i) => i / 2);
+  const localSamples = times.map(time => [time, graded(time, 10, inputAmplitude)]);
+  const reachesThreshold = rest + initialAmplitude >= threshold;
+  const trigger = reachesThreshold ? times.find(time => graded(time, initialStart, initialAmplitude) >= threshold) : undefined;
+  const initialSamples = times.map(time => {
+    if (trigger === undefined || time < trigger) return [time, graded(time, initialStart, initialAmplitude)];
+    const since = time - trigger;
+    if (since <= 4) return [time, threshold + (spikePeak - threshold) * since / 4];
+    if (since <= 12) return [time, spikePeak + (-78 - spikePeak) * (since - 4) / 8];
+    return [time, rest - 8 * Math.exp(-(since - 12) / 9)];
+  });
+  const strengths = ['Weak', 'Somewhat weak', 'Moderate', 'Moderately strong', 'Very strong', 'Strongest'];
+  const distances = ['Closest', 'Close', 'Moderately close', 'Moderately far', 'Far', 'Furthest away'];
+  strength.setAttribute('aria-valuetext', strengths[level - 1]);
+  distance.setAttribute('aria-valuetext', distances[separation - 1]);
+  const synapsePosition = 283 - (separation - 1) * 44;
+  get('synapse').setAttribute('cx', synapsePosition);
+  get('signal-path').setAttribute('x1', synapsePosition);
+  const localPeak = signed(rest + inputAmplitude) + ' mV';
+  const initialPeak = signed(reachesThreshold ? spikePeak : Math.round(rest + initialAmplitude)) + ' mV';
+  get('local-reading').textContent = 'Peak voltage ' + localPeak;
+  get('initial-reading').textContent = 'Peak voltage ' + initialPeak;
+  trace(get('local'), localSamples, false, 'Graded potential at the dendrite. Peak voltage ' + localPeak);
+  trace(get('initial'), initialSamples, true, 'Voltage at the axon initial segment. Threshold −55 mV. Peak voltage ' + initialPeak);
+  get('outcome').textContent = reachesThreshold ? 'Threshold reached · action potential' : 'Below threshold · no action potential';
+  get('explanation').textContent = reachesThreshold
+    ? 'Enough depolarisation reaches the axon initial segment to trigger regenerative opening of voltage-gated sodium channels. The spike reaches +30 mV in this model.'
+    : 'The local depolarisation spreads and weakens with distance. The voltage at the axon initial segment stays below the threshold needed to trigger a spike.';
+}
+strength.oninput = update;
+distance.oninput = update;
+
+function showComparison(show) {
+  get('trigger-panel').hidden = show;
+  get('compare-panel').hidden = !show;
+  get('show-trigger').setAttribute('aria-pressed', !show);
+  get('show-compare').setAttribute('aria-pressed', show);
+}
+get('show-trigger').onclick = () => showComparison(false);
+get('show-compare').onclick = () => showComparison(true);
+for (const [id, amplitude, description] of [
+  ['depolarising', 8, 'The voltage rises from minus 70 to minus 62 millivolts, then returns towards rest.'],
+  ['hyperpolarising', -8, 'The voltage falls from minus 70 to minus 78 millivolts, then returns towards rest.']
+]) {
+  const samples = Array.from({length:201}, (_, index) => [index / 2, graded(index / 2, 10, amplitude)]);
+  trace(get(id), samples, false, description, true);
+}
+update();
+</script>
+</html>
