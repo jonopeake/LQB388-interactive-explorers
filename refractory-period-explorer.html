@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en-AU">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can the neuron fire again?</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f8f7;color:#18353d;font:16px/1.5 system-ui,sans-serif}main{max-width:850px;margin:auto;padding:22px 16px}h1{font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.15;margin:0 0 10px}h2{font-size:1.1rem;margin:0 0 8px}p{margin:0 0 12px}.card{background:white;border:1px solid #c8dad8;border-radius:12px;padding:14px;margin:12px 0}.controls{display:grid;grid-template-columns:1fr 1fr;gap:16px}.row{display:flex;justify-content:space-between;gap:10px}label,legend{font-weight:650}fieldset{margin:0;padding:0;border:0}fieldset label{display:inline-flex;align-items:center;gap:5px;margin:8px 14px 0 0;font-weight:400}input{accent-color:#146957}input[type=range]{width:100%;margin:8px 0}.small{font-size:.9rem}svg{width:100%;height:auto;display:block}svg text{font:14px system-ui,sans-serif;fill:#23454e}.result{background:#e0f2ec;border-left:4px solid #167260}.result p{margin:0}:focus-visible{outline:2px solid #a24d20;outline-offset:3px}summary{cursor:pointer;font-weight:650}@media(max-width:560px){.controls{grid-template-columns:1fr}}
+</style>
+<main>
+<h1>Can the neuron fire again?</h1>
+<p>The first stimulus triggers an action potential. Change when the second stimulus arrives and how strong it is. Both stimuli act at the same site.</p>
+<div class="card controls">
+<div><div class="row"><label for="delay">Time between stimuli</label><output id="delay-value" for="delay"></output></div>
+<input type="range" id="delay" min="0.5" max="10" step="0.5" value="1">
+<div class="row small"><span>Shorter delay</span><span>Longer delay</span></div></div>
+<fieldset><legend>Second stimulus strength</legend>
+<label><input type="radio" name="strength" value="usual" checked> Usual</label>
+<label><input id="strong" type="radio" name="strength" value="strong"> Stronger</label>
+</fieldset>
+</div>
+<section class="card">
+<h2>Voltage at the stimulated site</h2>
+<svg id="trace" viewBox="0 0 580 245" role="img"></svg>
+<p class="small">Dashed lines mark the first (1) and second (2) stimuli.</p>
+</section>
+<section class="card result" role="status" aria-atomic="true"><h2 id="outcome"></h2><p id="why"></p></section>
+<details class="card"><summary>Try three delays</summary>
+<ol><li>At 1 ms, try both strengths. Can either trigger a second spike?</li>
+<li>At 4 ms, compare the usual and stronger stimulus. What changes?</li>
+<li>At 8 ms, try the usual stimulus again. What does the response tell you about recovery?</li></ol>
+</details>
+<p class="small">This schematic model uses illustrative voltages and recovery times. Actual refractory periods vary between neurons.</p>
+</main>
+<script>
+'use strict';
+const byId = id => document.getElementById(id);
+const delay = byId('delay');
+const strong = byId('strong');
+const plot = byId('trace');
+const x = ms => 57 + ms * (490 / 18);
+const y = mv => 28 + (35 - mv) * 1.45;
+const spike = [[0,0],[0.25,22],[0.65,100],[1.4,15],[2.1,-8],[3.4,-6],[5,-2],[6.5,0]];
+
+function interpolate(points, ms) {
+  if (ms < 0) return 0;
+  const next = points.findIndex(point => point[0] >= ms);
+  if (next < 1) return 0;
+  const [start, low] = points[next - 1];
+  const [end, high] = points[next];
+  return low + (high - low) * (ms - start) / (end - start);
+}
+
+function update() {
+  const separation = Number(delay.value);
+  const secondTime = 1 + separation;
+  const phase = separation < 2 ? 'absolute' : separation < 6 ? 'relative' : 'recovered';
+  const fires = phase === 'recovered' || (phase === 'relative' && strong.checked);
+  const outcome = fires ? 'Second action potential' : 'No second action potential';
+  const explanation = {
+    absolute: 'Absolute refractory period. Too many voltage-gated sodium channels are still inactivated to support another spike, even with the stronger stimulus.',
+    relative: fires
+      ? 'Relative refractory period. Some sodium channels have recovered, and the stronger stimulus can trigger another spike despite continued outward potassium current.'
+      : 'Relative refractory period. Some sodium channels have recovered, but sodium channel availability and continued outward potassium current make firing harder. Try the stronger stimulus.',
+    recovered: 'Excitability has recovered. Enough sodium channels are available and outward potassium current has declined, so the usual stimulus can trigger another spike.'
+  }[phase];
+  byId('delay-value').textContent = separation + ' ms';
+  byId('outcome').textContent = outcome;
+  byId('why').textContent = explanation;
+  plot.setAttribute('aria-label', 'Membrane voltage trace. Stimuli separated by ' + separation + ' milliseconds. ' + outcome + '.');
+  const baseline = time => -70 + interpolate(spike, time - 1);
+  const voltageAtSecond = baseline(secondTime);
+  const points = Array.from({length: 361}, (_, index) => {
+    const time = index / 20;
+    const after = time - secondTime;
+    let voltage = baseline(time);
+    if (after >= 0 && fires) {
+      const peak = phase === 'relative' ? 23 : 30;
+      voltage = -70 + interpolate([[0,0],[0.65,peak-voltageAtSecond],[1.4,15],[2.1,-8],[3.4,-6],[5,-2],[6.5,0]], after)
+        + (after < 0.65 ? (voltageAtSecond + 70) : (voltageAtSecond + 70) * Math.max(0, (1.4-after)/0.75));
+    } else if (after >= 0 && phase === 'relative') {
+      voltage += interpolate([[0,0],[0.35,6],[1.15,0]], after);
+    }
+    return x(time) + ',' + y(voltage);
+  }).join(' ');
+  const guides = [30, 0, -70].map(mv => '<line x1="57" x2="547" y1="' + y(mv) + '" y2="' + y(mv) +
+    '" stroke="#d8e5e3"/><text x="49" y="' + (y(mv)+4) + '" text-anchor="end">' + String(mv).replace('-', '−') + '</text>').join('');
+  const stimuli = [1, secondTime].map((ms, i) => '<line x1="' + x(ms) + '" x2="' + x(ms) +
+    '" y1="28" y2="193" stroke="#975225" stroke-dasharray="4 4"/><text x="' + x(ms) + '" y="' +
+    (i === 0 ? 211 : 228) + '" text-anchor="middle">' + (i+1) + '</text>').join('');
+  plot.innerHTML = guides + '<path d="M57 28V193H547" fill="none" stroke="#759096"/>' + stimuli +
+    '<text x="57" y="18">Membrane potential (mV)</text><text x="547" y="225" text-anchor="end">Time →</text>' +
+    '<polyline points="' + points + '" fill="none" stroke="#13617a" stroke-width="2.8" stroke-linejoin="round"/>';
+}
+
+delay.addEventListener('input', update);
+document.querySelectorAll('[name=strength]').forEach(input => input.addEventListener('change', update));
+update();
+</script>
+</html>
